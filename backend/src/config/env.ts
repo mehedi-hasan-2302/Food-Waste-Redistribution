@@ -4,7 +4,6 @@ dotenv.config()
 export const config = {
     
   port: process.env.PORT ,
-  jwtSecret: process.env.JWT_SECRET ,
   db: {
     host: process.env.DB_HOST,
     user: process.env.DB_USER ,
@@ -23,4 +22,4 @@ export const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   },
 
-}
+} 

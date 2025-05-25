@@ -18,7 +18,7 @@ export async function sendVerificationEmail(email: string, code: string) {
       from: `"FoodRedistrib" <${config.email.user}>`,
       to: email,
       subject: 'Verify Your Email',
-      text: `Your verification code is: ${code}`,
+      text: `Your verification code is: ${code}. This code is valid for 10 minutes.`
     })
   } catch (err) {
     console.error('Error sending verification email:', err)

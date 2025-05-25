@@ -58,17 +58,17 @@ export class User {
     @Column({ default: false })
     IsEmailVerified!: boolean
 
-    @Column({ length: 6, nullable: true })
-    verificationCode?: string
+    @Column({ type: 'varchar', length: 6, nullable: true })
+    verificationCode?: string | null
 
     @Column({ type: 'timestamp', nullable: true })
-    verificationCodeExpires?: Date
+    verificationCodeExpires?: Date | null
 
-    @Column({ nullable: true })
-    passwordResetToken?: string
+    @Column({ type:'varchar', nullable: true })
+    passwordResetToken?: string | null
 
     @Column({ type: 'timestamp', nullable: true })
-    passwordResetExpires?: Date
+    passwordResetExpires?: Date | null
 
     @Column({ type: 'enum', enum: AccountStatus, default: AccountStatus.PENDING })
     AccountStatus!: AccountStatus
