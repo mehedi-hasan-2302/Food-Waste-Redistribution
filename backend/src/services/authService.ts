@@ -10,6 +10,7 @@ import crypto from 'crypto'
 export interface SignupInput {
   Username: string;
   Email: string;
+  PhoneNumber?: string;
   Password: string;
   Role: string;
 }
@@ -17,10 +18,6 @@ export interface SignupInput {
 const userRepo = AppDataSource.getRepository(User)
 
 export async function signup(data: SignupInput) {
-  // Validate JWT secret exists
-  if (!config.jsonToken.secret) {
-    throw new Error('JWT secret is not configured')
-  }
 
   const existingUser = await userRepo.findOne({ 
     where: [
@@ -43,6 +40,7 @@ export async function signup(data: SignupInput) {
   const user = userRepo.create({
     Username: data.Username,
     Email: data.Email,
+    PhoneNumber: data.PhoneNumber,
     PasswordHash: await bcrypt.hash(data.Password, 10),
     Role: data.Role as UserRole,
     AccountStatus: AccountStatus.PENDING,

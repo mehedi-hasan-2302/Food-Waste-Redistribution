@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import * as authService from '../services/authService'
 import {
   UserDoesNotExistError,
@@ -7,8 +7,8 @@ import { sendSuccessResponse, sendErrorResponse } from '../utils/responseHelper'
 
 export async function signup(req: Request, res: Response) {
   try {
-    const { Username, Email, Password, Role } = req.body
-    const result = await authService.signup({ Username, Email, Password, Role })
+    const { Username, Email, PhoneNumber, Password, Role } = req.body
+    const result = await authService.signup({ Username, Email, PhoneNumber, Password, Role })
     sendSuccessResponse(res, result, 'User registered successfully. Please check your email for verification code.')
 
   } catch (e: any) {
@@ -19,6 +19,7 @@ export async function signup(req: Request, res: Response) {
     }
   }
 }
+
 
 export async function verifyEmail(req: Request, res: Response) {
   try {
