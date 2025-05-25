@@ -58,8 +58,11 @@ export class User {
     @Column({ default: false })
     IsEmailVerified!: boolean
 
-    @Column({ nullable: true })
+    @Column({ length: 6, nullable: true })
     verificationCode?: string
+
+    @Column({ type: 'timestamp', nullable: true })
+    verificationCodeExpires?: Date
 
     @Column({ nullable: true })
     passwordResetToken?: string

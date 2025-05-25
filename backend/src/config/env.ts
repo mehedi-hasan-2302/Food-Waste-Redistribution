@@ -13,8 +13,14 @@ export const config = {
     dbport: process.env.DB_PORT
   },
   email: {
-    user: process.env.EMAIL_USER ,
-    mailpass: process.env.EMAIL_PASSWORD
+    host: process.env.SMTP_HOST ,
+    port: process.env.SMTP_PORT ,
+    user: process.env.SMTP_USER ,
+    mailpass: process.env.SMTP_PASSWORD
+  },
+  jsonToken: {
+    secret: process.env.JWT_SECRET,
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   },
 
 }
