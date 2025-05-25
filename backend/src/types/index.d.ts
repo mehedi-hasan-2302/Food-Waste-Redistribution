@@ -1,8 +1,8 @@
-import { User } from "../../models/User";
+import { User } from '../models/User';
 
 declare global {
   namespace Express {
-    interface Request {
+    export interface Request {
       user?: User & {
         donorSellerId?: number;
         charityOrganizationId?: number;
@@ -13,5 +13,3 @@ declare global {
     }
   }
 }
-
-export {};

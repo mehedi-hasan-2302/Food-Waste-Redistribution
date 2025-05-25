@@ -19,6 +19,4 @@ export class DonorSeller {
   @Column({ length: 150 })
   BusinessName!: string
 
-  @Column({ default: false })
-  IsPhoneVerified!: boolean
 }
