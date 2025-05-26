@@ -51,3 +51,41 @@ export async function verifyEmail(req: Request, res: Response) {
     sendErrorResponse(res, e.message, 400)
   }
 }
+
+
+export async function requestForgotPasswordReset(req: Request, res: Response) {
+  try {
+    const { Email } = req.body
+    const result = await authService.requestForgotPasswordReset(Email)
+    sendSuccessResponse(res, result, 'Password reset code sent successfully. Please check your email.')
+
+  } catch (e: any) {
+    if (e.message.includes('User not found')) {
+      sendErrorResponse(res, e.message, 404)
+    } else if (e.message.includes('verify your email first')) {
+      sendErrorResponse(res, e.message, 403)
+    } else {
+      sendErrorResponse(res, e.message, 400)
+    }
+  }
+}
+
+
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const { Email, Code, Password, ConfirmPassword } = req.body
+    const result = await authService.resetPassword({ Email, Code, Password, ConfirmPassword })
+    sendSuccessResponse(res, result, 'Password reset successfully')
+
+  } catch (e: any) {
+    if (e.message.includes('User not found')) {
+      sendErrorResponse(res, e.message, 404)
+    } else if (e.message.includes('Invalid or expired')) {
+      sendErrorResponse(res, e.message, 400)
+    } else if (e.message.includes('Passwords do not match')) {
+      sendErrorResponse(res, e.message, 400)
+    } else {
+      sendErrorResponse(res, e.message, 400)
+    }
+  }
+}

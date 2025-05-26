@@ -3,7 +3,7 @@ import { User, UserRole, AccountStatus } from '../models/User'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { config } from '../config/env'
-import { sendVerificationEmail } from '../utils/emailHelper'
+import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/emailHelper'
 import crypto from 'crypto'
 
 
@@ -18,6 +18,14 @@ export interface SignupInput {
 export interface LoginInput {
   Email: string;
   Password: string;
+}
+
+
+export interface ResetPasswordInput {
+  Email: string;
+  Code: string;
+  Password: string;
+  ConfirmPassword: string;
 }
 
 const userRepo = AppDataSource.getRepository(User)
@@ -133,4 +141,57 @@ export async function verifyEmail(email: string, code: string) {
   )
 
   return { email_verificationToken }
+}
+
+
+export async function requestForgotPasswordReset(email: string) {
+  const user = await userRepo.findOneBy({ Email: email })
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  if (!user.IsEmailVerified) {
+    throw new Error('Please verify your email first before requesting password reset')
+  }
+
+  const resetCode = crypto.randomInt(100000, 1000000).toString()
+  const resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+
+  user.passwordResetToken = resetCode
+  user.passwordResetExpires = resetCodeExpires
+
+  await userRepo.save(user)
+  await sendPasswordResetEmail(user.Email, resetCode)
+
+}
+
+
+export async function resetPassword(data: ResetPasswordInput) {
+  const user = await userRepo.findOneBy({ Email: data.Email })
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  if (!user.passwordResetToken || !user.passwordResetExpires) {
+    throw new Error('No password reset code found')
+  }
+
+  if (user.passwordResetToken !== data.Code || user.passwordResetExpires < new Date()) {
+    throw new Error('Invalid or expired password reset code')
+  }
+
+  if (data.Password !== data.ConfirmPassword) {
+    throw new Error('Passwords do not match')
+  }
+
+  const hashedPassword = await bcrypt.hash(data.Password, 10)
+  
+  user.PasswordHash = hashedPassword
+  user.passwordResetToken = null
+  user.passwordResetExpires = null
+
+  await userRepo.save(user)
+
 }
