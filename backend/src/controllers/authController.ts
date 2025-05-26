@@ -21,6 +21,25 @@ export async function signup(req: Request, res: Response) {
 }
 
 
+
+export async function login(req: Request, res: Response) {
+  try {
+    const { Email, Password } = req.body
+    const result = await authService.login({ Email, Password })
+    sendSuccessResponse(res, result, 'Login successful')
+
+  } catch (e: any) {
+    if (e.message.includes('Invalid email or password')) {
+      sendErrorResponse(res, e.message, 401)
+    } else if (e.message.includes('not active') || e.message.includes('verify your email')) {
+      sendErrorResponse(res, e.message, 403)
+    } else {
+      sendErrorResponse(res, e.message, 400)
+    }
+  }
+}
+
+
 export async function verifyEmail(req: Request, res: Response) {
   try {
     const email = req.body.Email as string

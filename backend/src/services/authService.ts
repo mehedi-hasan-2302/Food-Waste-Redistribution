@@ -15,6 +15,11 @@ export interface SignupInput {
   Role: string;
 }
 
+export interface LoginInput {
+  Email: string;
+  Password: string;
+}
+
 const userRepo = AppDataSource.getRepository(User)
 
 export async function signup(data: SignupInput) {
@@ -54,6 +59,41 @@ export async function signup(data: SignupInput) {
 
 }
 
+
+export async function login(data: LoginInput) {
+  const user = await userRepo.findOneBy({ Email: data.Email })
+
+  if (!user) {
+    throw new Error('Invalid email or password')
+  }
+
+  if (user.AccountStatus !== AccountStatus.ACTIVE) {
+    throw new Error('Account is not active. Please verify your email first.')
+  }
+
+  if (!user.IsEmailVerified) {
+    throw new Error('Please verify your email before logging in')
+  }
+
+  const isPasswordValid = await bcrypt.compare(data.Password, user.PasswordHash)
+  if (!isPasswordValid) {
+    throw new Error('Invalid email or password')
+  }
+
+  const token = jwt.sign(
+    { 
+      id: user.UserID, 
+      email: user.Email, 
+      role: user.Role 
+    },
+    config.jsonToken.secret as string, 
+    { expiresIn: '24h' }
+  )
+
+  return {
+    token
+  }
+}
 
 
 export async function verifyEmail(email: string, code: string) {
