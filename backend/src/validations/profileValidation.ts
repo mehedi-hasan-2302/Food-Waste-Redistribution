@@ -184,6 +184,7 @@ interface OrgVolunteerProfileUpdate {
     VolunteerContactPhone?: string;
 }
 
+
 type Role =
     | 'DONOR_SELLER'
     | 'CHARITY_ORG'

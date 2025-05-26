@@ -50,7 +50,7 @@ export const verifyToken = async (
       buyerId: user.buyer?.ProfileID,
       independentDeliveryId: user.independentDelivery?.ProfileID,
       organizationVolunteerId: user.organizationVolunteer?.OrgVolunteerID,
-    }) as typeof req.user;
+    }) ;
 
     next()
   } catch (error: any) {

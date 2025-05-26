@@ -73,7 +73,14 @@ export const loginSchema = Joi.object({
 
 // Verify-Email
 export const verifyEmailSchema = Joi.object({
-  code: Joi.string()
+  Email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Email must be a valid email address',
+    }),
+  Code: Joi.string()
     .length(6)
     .pattern(/^[0-9]{6}$/)
     .required()

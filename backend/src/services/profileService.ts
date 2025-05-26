@@ -7,7 +7,6 @@ import { IndependentDelivery } from '../models/IndependentDelivery'
 import { OrganizationVolunteer } from '../models/OrganizationVolunteer'
 import { validateCompleteProfileData , validateUpdateProfileData } from '../validations/profileValidation' 
 
-
 export interface DonorSellerProfileInput {
   BusinessName: string
 }
@@ -20,7 +19,6 @@ export interface CharityOrgProfileInput {
 
 export interface BuyerProfileInput {
   DefaultDeliveryAddress: string
-
 }
 
 export interface IndependentDeliveryProfileInput {
@@ -34,7 +32,6 @@ export interface OrganizationVolunteerProfileInput {
   CharityOrgID: number
   VolunteerName: string
   VolunteerContactPhone: string
-  
 }
 
 const userRepo = AppDataSource.getRepository(User)
@@ -43,6 +40,14 @@ const charityOrgRepo = AppDataSource.getRepository(CharityOrganization)
 const buyerRepo = AppDataSource.getRepository(Buyer)
 const independentDeliveryRepo = AppDataSource.getRepository(IndependentDelivery)
 const orgVolunteerRepo = AppDataSource.getRepository(OrganizationVolunteer)
+
+
+function cleanProfileResponse(profile: any): any {
+  if (!profile) return profile
+  
+  const { user, ...cleanProfile } = profile
+  return cleanProfile
+}
 
 export async function completeProfile(
   userId: number,
@@ -67,7 +72,6 @@ export async function completeProfile(
     throw new Error('Email must be verified before completing profile')
   }
 
-  
   const hasExistingProfile = user.donorSeller || 
                             user.charityOrganization || 
                             user.buyer || 
@@ -82,8 +86,6 @@ export async function completeProfile(
     user.PhoneNumber = profileData.PhoneNumber
     await userRepo.save(user)
   }
-
-  
 
   await validateCompleteProfileData(profileData, user.Role);
 
@@ -110,8 +112,6 @@ export async function completeProfile(
       createdProfile = await createOrganizationVolunteerProfile(user, profileData as OrganizationVolunteerProfileInput)
       break
     
-
-    
     default:
       throw new Error('Invalid user role')
   }
@@ -124,7 +124,7 @@ export async function completeProfile(
       PhoneNumber: user.PhoneNumber,
       Role: user.Role
     },
-    profile: createdProfile
+    profile: cleanProfileResponse(createdProfile)
   }
 }
 
@@ -132,7 +132,6 @@ async function createDonorSellerProfile(user: User, data: DonorSellerProfileInpu
   const profile = donorSellerRepo.create({
     user: user,
     BusinessName: data.BusinessName,
-
   })
   
   return await donorSellerRepo.save(profile)
@@ -174,7 +173,6 @@ async function createIndependentDeliveryProfile(user: User, data: IndependentDel
 }
 
 async function createOrganizationVolunteerProfile(user: User, data: OrganizationVolunteerProfileInput) {
-
   const charityOrg = await charityOrgRepo.findOne({
     where: { ProfileID: data.CharityOrgID }
   })
@@ -229,7 +227,7 @@ export async function getProfile(userId: number) {
       IsEmailVerified: user.IsEmailVerified,
       AccountStatus: user.AccountStatus
     },
-    profile: profile || null,
+    profile: cleanProfileResponse(profile),
     profileCompleted: !!profile
   }
 }
@@ -255,6 +253,8 @@ export async function updateProfile(userId: number, updateData: any) {
     await userRepo.save(user)
   }
 
+  await validateUpdateProfileData(updateData, user.Role as any);
+  
   let updatedProfile: any
 
   switch (user.Role) {
@@ -329,6 +329,6 @@ export async function updateProfile(userId: number, updateData: any) {
       PhoneNumber: user.PhoneNumber,
       Role: user.Role
     },
-    profile: updatedProfile
+    profile: cleanProfileResponse(updatedProfile)
   }
 }

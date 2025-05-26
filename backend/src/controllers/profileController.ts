@@ -1,5 +1,3 @@
-
-
 import { Request, Response } from 'express'
 import * as profileService from '../services/profileService'
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseHelper'
