@@ -5,7 +5,20 @@ import jwt from 'jsonwebtoken'
 import { config } from '../config/env'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/emailHelper'
 import crypto from 'crypto'
-
+import {
+  UserAlreadyExistsError,
+  InvalidRoleError,
+  UserDoesNotExistError,
+  InvalidCredentialsError,
+  AccountNotActiveError,
+  EmailNotVerifiedError,
+  EmailAlreadyVerifiedError,
+  VerificationCodeNotFoundError,
+  InvalidVerificationCodeError,
+  PasswordResetTokenNotFoundError,
+  InvalidPasswordResetTokenError,
+  PasswordMismatchError
+} from '../utils/errors'
 
 export interface SignupInput {
   Username: string;
@@ -20,7 +33,6 @@ export interface LoginInput {
   Password: string;
 }
 
-
 export interface ResetPasswordInput {
   Email: string;
   Code: string;
@@ -30,21 +42,20 @@ export interface ResetPasswordInput {
 
 const userRepo = AppDataSource.getRepository(User)
 
-export async function signup(data: SignupInput) {
 
+export async function signup(data: SignupInput) {
   const existingUser = await userRepo.findOne({ 
     where: [
       { Email: data.Email },
-
     ]
   })
   
   if (existingUser) {
-    throw new Error('User with this email already exists')
+    throw new UserAlreadyExistsError()
   }
 
   if (!Object.values(UserRole).includes(data.Role as UserRole)) {
-    throw new Error('Invalid role specified')
+    throw new InvalidRoleError()
   }
 
   const code = crypto.randomInt(100000, 1000000).toString();
@@ -64,28 +75,28 @@ export async function signup(data: SignupInput) {
   
   await userRepo.save(user)
   await sendVerificationEmail(user.Email, code)
-
 }
+
 
 
 export async function login(data: LoginInput) {
   const user = await userRepo.findOneBy({ Email: data.Email })
 
   if (!user) {
-    throw new Error('Invalid email or password')
+    throw new InvalidCredentialsError()
   }
 
   if (user.AccountStatus !== AccountStatus.ACTIVE) {
-    throw new Error('Account is not active. Please verify your email first.')
+    throw new AccountNotActiveError()
   }
 
   if (!user.IsEmailVerified) {
-    throw new Error('Please verify your email before logging in')
+    throw new EmailNotVerifiedError()
   }
 
   const isPasswordValid = await bcrypt.compare(data.Password, user.PasswordHash)
   if (!isPasswordValid) {
-    throw new Error('Invalid email or password')
+    throw new InvalidCredentialsError()
   }
 
   const token = jwt.sign(
@@ -104,25 +115,25 @@ export async function login(data: LoginInput) {
 }
 
 
+
 export async function verifyEmail(email: string, code: string) {
   const user = await userRepo.findOneBy({ Email: email })
 
   if (!user) {
-    throw new Error('User not found')
+    throw new UserDoesNotExistError()
   }
   
   if (user.IsEmailVerified) {
-    throw new Error('Email already verified')
+    throw new EmailAlreadyVerifiedError()
   }
   
   if (!user.verificationCode || !user.verificationCodeExpires) {
-    throw new Error('No verification code found')
+    throw new VerificationCodeNotFoundError()
   }
   
   if (user.verificationCode !== code || user.verificationCodeExpires < new Date()) {
-    throw new Error('Invalid or expired verification code')
+    throw new InvalidVerificationCodeError()
   }
-
   
   user.IsEmailVerified = true
   user.verificationCode = null
@@ -144,15 +155,16 @@ export async function verifyEmail(email: string, code: string) {
 }
 
 
+
 export async function requestForgotPasswordReset(email: string) {
   const user = await userRepo.findOneBy({ Email: email })
 
   if (!user) {
-    throw new Error('User not found')
+    throw new UserDoesNotExistError()
   }
 
   if (!user.IsEmailVerified) {
-    throw new Error('Please verify your email first before requesting password reset')
+    throw new EmailNotVerifiedError('Please verify your email first before requesting password reset')
   }
 
   const resetCode = crypto.randomInt(100000, 1000000).toString()
@@ -163,7 +175,6 @@ export async function requestForgotPasswordReset(email: string) {
 
   await userRepo.save(user)
   await sendPasswordResetEmail(user.Email, resetCode)
-
 }
 
 
@@ -171,19 +182,19 @@ export async function resetPassword(data: ResetPasswordInput) {
   const user = await userRepo.findOneBy({ Email: data.Email })
 
   if (!user) {
-    throw new Error('User not found')
+    throw new UserDoesNotExistError()
   }
 
   if (!user.passwordResetToken || !user.passwordResetExpires) {
-    throw new Error('No password reset code found')
+    throw new PasswordResetTokenNotFoundError()
   }
 
   if (user.passwordResetToken !== data.Code || user.passwordResetExpires < new Date()) {
-    throw new Error('Invalid or expired password reset code')
+    throw new InvalidPasswordResetTokenError()
   }
 
   if (data.Password !== data.ConfirmPassword) {
-    throw new Error('Passwords do not match')
+    throw new PasswordMismatchError()
   }
 
   const hashedPassword = await bcrypt.hash(data.Password, 10)
@@ -193,5 +204,4 @@ export async function resetPassword(data: ResetPasswordInput) {
   user.passwordResetExpires = null
 
   await userRepo.save(user)
-
 }
