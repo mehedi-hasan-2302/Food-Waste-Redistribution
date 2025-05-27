@@ -5,13 +5,13 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
-} from 'typeorm'
-import { User } from './User'
-import { Order } from './Order'
-import { DonationClaim } from './DonationClaim'
+} from 'typeorm';
+import { User } from './User';
+import { Order } from './Order';
+import { DonationClaim } from './DonationClaim';
 
 export enum ListingStatus {
-  ACTIVE  = 'ACTIVE',
+  ACTIVE = 'ACTIVE',
   CLAIMED = 'CLAIMED',
   EXPIRED = 'EXPIRED',
   REMOVED = 'REMOVED',
@@ -20,42 +20,60 @@ export enum ListingStatus {
 @Entity({ name: 'FoodListings' })
 export class FoodListing {
   @PrimaryGeneratedColumn()
-  ListingID!: number
+  ListingID!: number;
 
   @ManyToOne(() => User, u => u.foodListings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'DonorSellerUserID' })
-  donor!: User
+  donor!: User;
 
   @Column({ length: 150 })
-  Title!: string
+  Title!: string;
 
   @Column('text')
-  Description!: string
+  Description!: string;
 
   @Column()
-  FoodType!: string
-
-  @Column('date')
-  CookedDate!: string
-
-  @Column('timestamp')
-  PickupWindowStart!: Date
-
-  @Column({ default: true })
-  IsDonation!: boolean
-
-  @Column('decimal', { precision: 8, scale: 2, nullable: true })
-  Price?: number
-
-  @Column({ type: 'enum', enum: ListingStatus, default: ListingStatus.ACTIVE })
-  ListingStatus!: ListingStatus
+  FoodType!: string;
 
   @Column({ nullable: true })
-  ImagePath?: string
+  Quantity?: string;
+
+  @Column({ nullable: true })
+  DietaryInfo?: string;
+
+  @Column('date')
+  CookedDate!: Date;
+
+  @Column({ default: true })
+  IsDonation!: boolean;
+
+  @Column('decimal', { precision: 8, scale: 2, nullable: true })
+  Price?: number;
+
+  @Column({ type: 'enum', enum: ListingStatus, default: ListingStatus.ACTIVE })
+  ListingStatus!: ListingStatus;
+
+  @Column({ type: 'varchar', nullable: true })
+  ImagePath?: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  ImagePublicId?: string | null;
+
+  @Column('timestamp', { default: () => 'CURRENT_TIMESTAMP' })
+  CreatedAt!: Date;
+
+  @Column('timestamp')
+  PickupWindowStart!: Date;
+
+  @Column('timestamp', { nullable: true })
+  PickupWindowEnd?: Date;
+
+  @Column({ length: 200, nullable: true })
+  PickupLocation?: string;
 
   @OneToMany(() => Order, o => o.listing)
-  orders?: Order[]
+  orders?: Order[];
 
   @OneToMany(() => DonationClaim, dc => dc.listing)
-  claims?: DonationClaim[]
+  claims?: DonationClaim[];
 }

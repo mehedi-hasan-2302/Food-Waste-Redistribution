@@ -158,3 +158,24 @@ export class MissingUserError extends BaseError {
     super(message, 404)
   }
 }
+
+
+export class FoodListingNotFoundError extends Error {
+  statusCode: number
+  
+  constructor(message: string = 'Food listing not found') {
+    super(message)
+    this.name = 'FoodListingNotFoundError'
+    this.statusCode = 404
+  }
+}
+
+export class UnauthorizedActionError extends Error {
+  statusCode: number
+  
+  constructor(message: string = 'Unauthorized action') {
+    super(message)
+    this.name = 'UnauthorizedActionError'
+    this.statusCode = 403
+  }
+}
