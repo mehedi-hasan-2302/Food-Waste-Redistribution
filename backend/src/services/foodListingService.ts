@@ -54,7 +54,6 @@ export interface SearchParams {
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
 
-
 export async function createFoodListingWithImage(
   userId: number, 
   listingData: FoodListingInput,
@@ -62,9 +61,20 @@ export async function createFoodListingWithImage(
 ) {
   const user = await userRepo.findOne({
     where: { UserID: userId },
-    relations: ['donorSeller']
+    relations: ['donorSeller'],
+    select: {
+      UserID: true,
+      Username: true,
+      Email: true,
+      PhoneNumber: true,
+      Role: true,
+      AccountStatus: true,
+      donorSeller: {
+        ProfileID: true,
+        BusinessName: true
+      }
+    }
   });
-
 
   if (!user) throw new UserDoesNotExistError();
   if (user.Role !== UserRole.DONOR_SELLER) {
@@ -72,7 +82,7 @@ export async function createFoodListingWithImage(
   }
   if (!user.donorSeller) throw new ProfileNotFoundError('Donor/Seller profile not found');
 
-  await validateFoodListingData(listingData);
+  const validatedData = await validateFoodListingData(listingData);
 
   let imageUrl: string | null = null;
   let imagePublicId: string | null = null;
@@ -93,25 +103,24 @@ export async function createFoodListingWithImage(
     ? new Date(listingData.PickupWindowEnd)
     : new Date(pickupStart.getTime() + 4 * 60 * 60 * 1000);
 
+  const foodListing = new FoodListing();
+  foodListing.donor = user;
+  foodListing.Title = listingData.Title;
+  foodListing.Description = listingData.Description;
+  foodListing.FoodType = listingData.FoodType;
+  foodListing.CookedDate = new Date(listingData.CookedDate);
+  foodListing.IsDonation = listingData.IsDonation;
+  foodListing.Price = validatedData.Price;
+  foodListing.ImagePath = imageUrl;
+  foodListing.ImagePublicId = imagePublicId;
+  foodListing.Quantity = listingData.Quantity;
+  foodListing.DietaryInfo = listingData.DietaryInfo;
+  foodListing.ListingStatus = ListingStatus.ACTIVE;
+  foodListing.PickupWindowStart = pickupStart;
+  foodListing.PickupWindowEnd = pickupEnd;
+  foodListing.PickupLocation = listingData.PickupLocation;
 
-
-const foodListing = new FoodListing();
-foodListing.donor = user;
-foodListing.Title = listingData.Title;
-foodListing.Description = listingData.Description;
-foodListing.FoodType = listingData.FoodType;
-foodListing.CookedDate = new Date(listingData.CookedDate);
-foodListing.IsDonation = listingData.IsDonation;
-foodListing.Price = listingData.IsDonation ? 0 : (listingData.Price || 0);
-foodListing.ImagePath = imageUrl;
-foodListing.ImagePublicId = imagePublicId;
-foodListing.Quantity = listingData.Quantity;
-foodListing.DietaryInfo = listingData.DietaryInfo;
-foodListing.ListingStatus = ListingStatus.ACTIVE;
-foodListing.PickupWindowStart = pickupStart;
-foodListing.PickupWindowEnd = pickupEnd;
-
-const savedListing = await foodListingRepo.save(foodListing);
+  const savedListing = await foodListingRepo.save(foodListing);
 
   return {
     listing: savedListing,
@@ -123,7 +132,8 @@ const savedListing = await foodListingRepo.save(foodListing);
   };
 }
 
-export async function getAllFoodListings(filters: FoodListingFilters) {
+
+export async function getAllFoodListings(filters: FoodListingFilters, offset: number, limit: number) {
   const queryBuilder = foodListingRepo.createQueryBuilder('listing')
     .leftJoinAndSelect('listing.donor', 'donor')
     .leftJoinAndSelect('donor.donorSeller', 'donorSeller')
@@ -160,15 +170,41 @@ export async function getAllFoodListings(filters: FoodListingFilters) {
     })
   }
 
-  const limit = Math.min(parseInt(filters.limit || '20'), 50) 
-  const offset = parseInt(filters.offset || '0')
-  
-  queryBuilder.limit(limit).offset(offset)
-  queryBuilder.orderBy('listing.CreatedAt', 'DESC')
+  queryBuilder
+    .skip(offset)
+    .take(limit)
+    .orderBy('listing.CreatedAt', 'DESC')
 
-  const [listings, total] = await queryBuilder.getManyAndCount()
+  const listings = await queryBuilder.getMany()
 
-  const updatedListings = listings.map(listing => {
+  const formattedListings = listings.map(listing => {
+    const baseData = {
+      listing: {
+        listingId: listing.ListingID,
+        title: listing.Title,
+        description: listing.Description,
+        foodType: listing.FoodType,
+        quantity: listing.Quantity,
+        dietaryInfo: listing.DietaryInfo,
+        cookedDate: listing.CookedDate,
+        isDonation: listing.IsDonation,
+        price: listing.Price,
+        listingStatus: listing.ListingStatus,
+        imagePath: listing.ImagePath,
+        createdAt: listing.CreatedAt,
+        pickupWindowStart: listing.PickupWindowStart,
+        pickupWindowEnd: listing.PickupWindowEnd,
+        pickupLocation: listing.PickupLocation,
+      },
+      donorSeller: {
+        userId: listing.donor.UserID,
+        username: listing.donor.Username,
+        email: listing.donor.Email,
+        phoneNumber: listing.donor.PhoneNumber,
+        businessName: listing.donor.donorSeller?.BusinessName
+      }
+    }
+
     if (!listing.IsDonation && (listing.Price ?? 0) > 0) {
       const price = listing.Price ?? 0;
       const hoursElapsed = (Date.now() - listing.CreatedAt.getTime()) / (1000 * 60 * 60)
@@ -176,32 +212,57 @@ export async function getAllFoodListings(filters: FoodListingFilters) {
       const dynamicPrice = price * (1 - discountRate)
       
       return {
-        ...listing,
-        originalPrice: price,
-        currentPrice: Math.round(dynamicPrice * 100) / 100,
-        discountApplied: Math.round(discountRate * 100)
+        ...baseData,
+        listing: {
+          ...baseData.listing,
+          originalPrice: price,
+          currentPrice: Math.round(dynamicPrice * 100) / 100,
+          discountApplied: Math.round(discountRate * 100)
+        }
       }
     }
-    return listing
+    
+    return baseData
   })
 
-  return {
-    listings: updatedListings,
-    pagination: {
-      total,
-      limit,
-      offset,
-      hasMore: offset + limit < total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: Math.floor(offset / limit) + 1
-    }
-  }
+  return formattedListings
 }
+
 
 export async function getFoodListingById(listingId: number) {
   const listing = await foodListingRepo.findOne({
     where: { ListingID: listingId },
-    relations: ['donor', 'donor.donorSeller']
+    relations: ['donor', 'donor.donorSeller'],
+    select: {
+      ListingID: true,
+      Title: true,
+      Description: true,
+      FoodType: true,
+      Quantity: true,
+      DietaryInfo: true,
+      CookedDate: true,
+      IsDonation: true,
+      Price: true,
+      ListingStatus: true,
+      ImagePath: true,
+      ImagePublicId: true,
+      CreatedAt: true,
+      PickupWindowStart: true,
+      PickupWindowEnd: true,
+      PickupLocation: true,
+      donor: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        PhoneNumber: true,
+        Role: true,
+        AccountStatus: true,
+        donorSeller: {
+          ProfileID: true,
+          BusinessName: true
+        }
+      }
+    }
   })
 
   if (!listing) {
@@ -225,6 +286,7 @@ export async function getFoodListingById(listingId: number) {
   return listing
 }
 
+
 export async function updateFoodListingWithImage(
   userId: number, 
   listingId: number, 
@@ -233,7 +295,30 @@ export async function updateFoodListingWithImage(
 ) {
   const listing = await foodListingRepo.findOne({
     where: { ListingID: listingId },
-    relations: ['donor']
+    relations: ['donor'],
+    select: {
+      ListingID: true,
+      Title: true,
+      Description: true,
+      FoodType: true,
+      Quantity: true,
+      DietaryInfo: true,
+      CookedDate: true,
+      IsDonation: true,
+      Price: true,
+      ListingStatus: true,
+      ImagePath: true,
+      ImagePublicId: true,
+      CreatedAt: true,
+      PickupWindowStart: true,
+      PickupWindowEnd: true,
+      PickupLocation: true,
+      donor: {
+        UserID: true,
+        Username: true,
+        Role: true
+      }
+    }
   })
 
   if (!listing) {
@@ -274,7 +359,6 @@ export async function updateFoodListingWithImage(
     }
   }
 
-
   if (updateData.Title) listing.Title = updateData.Title
   if (updateData.Description) listing.Description = updateData.Description
   if (updateData.Price !== undefined && !listing.IsDonation) {
@@ -294,10 +378,19 @@ export async function updateFoodListingWithImage(
   return updatedListing
 }
 
+
+
 export async function deleteFoodListing(userId: number, listingId: number) {
   const listing = await foodListingRepo.findOne({
     where: { ListingID: listingId },
-    relations: ['donor']
+    relations: ['donor'],
+    select: {
+      ListingID: true,
+      ImagePublicId: true,
+      donor: {
+        UserID: true
+      }
+    }
   })
 
   if (!listing) {
@@ -313,7 +406,6 @@ export async function deleteFoodListing(userId: number, listingId: number) {
       await deleteImageFromCloudinary(listing.ImagePublicId)
     } catch (error) {
       console.error('Failed to delete image from Cloudinary:', error)
-      
     }
   }
 
@@ -321,12 +413,13 @@ export async function deleteFoodListing(userId: number, listingId: number) {
   return { message: 'Food listing deleted successfully' }
 }
 
-export async function getMyFoodListings(userId: number, filters: FoodListingFilters) {
+
+
+export async function getMyFoodListings(userId: number, filters: FoodListingFilters, offset: number, limit: number) {
   const queryBuilder = foodListingRepo.createQueryBuilder('listing')
     .leftJoinAndSelect('listing.donor', 'donor')
     .where('listing.donor.UserID = :userId', { userId })
 
- 
   if (filters.status) {
     queryBuilder.andWhere('listing.ListingStatus = :status', { status: filters.status })
   } else {
@@ -347,31 +440,67 @@ export async function getMyFoodListings(userId: number, filters: FoodListingFilt
     })
   }
 
-  const limit = Math.min(parseInt(filters.limit || '20'), 50)
-  const offset = parseInt(filters.offset || '0')
-  
-  queryBuilder.limit(limit).offset(offset)
-  queryBuilder.orderBy('listing.CreatedAt', 'DESC')
+  const listings = await queryBuilder
+    .skip(offset)
+    .take(limit)
+    .orderBy('listing.CreatedAt', 'DESC')
+    .select([
+      'listing',
+      'donor.UserID',
+      'donor.Username',
+      'donor.Email',
+      'donor.PhoneNumber',
+      'donor.Role',
+      'donor.AccountStatus'
+    ])
+    .getMany()
 
-  const [listings, total] = await queryBuilder.getManyAndCount()
-
-  return {
-    listings,
-    pagination: {
-      total,
-      limit,
-      offset,
-      hasMore: offset + limit < total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: Math.floor(offset / limit) + 1
+  const formattedListings = listings.map(listing => ({
+    listing: {
+      listingId: listing.ListingID,
+      title: listing.Title,
+      description: listing.Description,
+      foodType: listing.FoodType,
+      quantity: listing.Quantity,
+      dietaryInfo: listing.DietaryInfo,
+      cookedDate: listing.CookedDate,
+      isDonation: listing.IsDonation,
+      price: listing.Price,
+      listingStatus: listing.ListingStatus,
+      imagePath: listing.ImagePath,
+      createdAt: listing.CreatedAt,
+      pickupWindowStart: listing.PickupWindowStart,
+      pickupWindowEnd: listing.PickupWindowEnd,
+      pickupLocation: listing.PickupLocation,
+    },
+    donor: {
+      userId: listing.donor.UserID,
+      username: listing.donor.Username,
+      email: listing.donor.Email,
+      phoneNumber: listing.donor.PhoneNumber,
+      role: listing.donor.Role,
+      accountStatus: listing.donor.AccountStatus
     }
-  }
+  }))
+
+  return formattedListings
 }
+
+
 
 export async function negotiatePrice(buyerId: number, listingId: number, proposedPrice: number) {
   const listing = await foodListingRepo.findOne({
     where: { ListingID: listingId },
-    relations: ['donor']
+    relations: ['donor'],
+    select: {
+      ListingID: true,
+      IsDonation: true,
+      Price: true,
+      ListingStatus: true,
+      donor: {
+        UserID: true
+      }
+    }
   })
 
   if (!listing) {
@@ -406,79 +535,81 @@ export async function negotiatePrice(buyerId: number, listingId: number, propose
   }
 }
 
-export async function searchFoodListings(searchParams: SearchParams) {
-  const queryBuilder = foodListingRepo.createQueryBuilder('listing')
+
+
+export async function searchFoodListings(
+  searchParams: SearchParams,
+  offset: number,
+  limit: number
+) {
+  const queryBuilder = foodListingRepo
+    .createQueryBuilder('listing')
     .leftJoinAndSelect('listing.donor', 'donor')
+    .leftJoinAndSelect('donor.donorSeller', 'donorSeller')
     .where('listing.ListingStatus = :status', { status: ListingStatus.ACTIVE })
-    .andWhere('listing.PickupWindowStart > :now', { now: new Date() })
+    .andWhere('listing.PickupWindowStart > :now', { now: new Date() });
 
   if (searchParams.q) {
     queryBuilder.andWhere(
       '(listing.Title ILIKE :search OR listing.Description ILIKE :search OR listing.FoodType ILIKE :search)',
       { search: `%${searchParams.q}%` }
-    )
+    );
   }
 
   if (searchParams.foodType) {
-    queryBuilder.andWhere('listing.FoodType ILIKE :foodType', { 
-      foodType: `%${searchParams.foodType}%` 
-    })
+    queryBuilder.andWhere('listing.FoodType ILIKE :foodType', {
+      foodType: `%${searchParams.foodType}%`
+    });
   }
 
   if (searchParams.isDonation !== undefined) {
-    queryBuilder.andWhere('listing.IsDonation = :isDonation', { 
-      isDonation: searchParams.isDonation === 'true' 
-    })
+    const isDon = searchParams.isDonation === 'true';
+    queryBuilder.andWhere('listing.IsDonation = :isDonation', { isDonation: isDon });
   }
 
   if (searchParams.minPrice && searchParams.isDonation !== 'true') {
-    queryBuilder.andWhere('listing.Price >= :minPrice', { 
-      minPrice: parseFloat(searchParams.minPrice) 
-    })
+    queryBuilder.andWhere('listing.Price >= :minPrice', {
+      minPrice: parseFloat(searchParams.minPrice)
+    });
   }
 
   if (searchParams.maxPrice && searchParams.isDonation !== 'true') {
-    queryBuilder.andWhere('listing.Price <= :maxPrice', { 
-      maxPrice: parseFloat(searchParams.maxPrice) 
-    })
+    queryBuilder.andWhere('listing.Price <= :maxPrice', {
+      maxPrice: parseFloat(searchParams.maxPrice)
+    });
   }
 
-
-  const sortBy = searchParams.sortBy || 'date'
-  const sortOrder = searchParams.sortOrder === 'desc' ? 'DESC' : 'ASC'
-
-  switch (sortBy) {
-    case 'price':
-      queryBuilder.orderBy('listing.Price', sortOrder)
-      break
-    case 'date':
-      queryBuilder.orderBy('listing.CreatedAt', sortOrder)
-      break
-    default:
-      queryBuilder.orderBy('listing.CreatedAt', 'DESC')
+  const sortBy = searchParams.sortBy || 'date';
+  const sortOrder = searchParams.sortOrder === 'desc' ? 'DESC' : 'ASC';
+  if (sortBy === 'price') {
+    queryBuilder.orderBy('listing.Price', sortOrder);
+  } else {
+    queryBuilder.orderBy('listing.CreatedAt', sortOrder);
   }
 
- 
-  const limit = Math.min(parseInt(searchParams.limit || '20'), 50)
-  const offset = parseInt(searchParams.offset || '0')
-  
-  queryBuilder.limit(limit).offset(offset)
+  queryBuilder.skip(offset).take(limit);
 
-  const [listings, total] = await queryBuilder.getManyAndCount()
+  queryBuilder.select([
+    'listing',
+    'donor.UserID',
+    'donor.Username',
+    'donor.Email',
+    'donor.PhoneNumber',
+    'donor.Role',
+    'donor.AccountStatus',
+    'donorSeller.ProfileID',
+    'donorSeller.BusinessName'
+  ]);
+
+  const listings = await queryBuilder.getMany();
 
   return {
     listings,
-    searchQuery: searchParams.q,
-    pagination: {
-      total,
-      limit,
-      offset,
-      hasMore: offset + limit < total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: Math.floor(offset / limit) + 1
-    }
-  }
+    searchQuery: searchParams.q
+  };
 }
+
+
 
 export async function getFoodListingStats(userId: number) {
   const stats = await foodListingRepo
@@ -506,10 +637,19 @@ export async function getFoodListingStats(userId: number) {
   }
 }
 
+
+
 export async function toggleListingStatus(userId: number, listingId: number, status: ListingStatus) {
   const listing = await foodListingRepo.findOne({
     where: { ListingID: listingId },
-    relations: ['donor']
+    relations: ['donor'],
+    select: {
+      ListingID: true,
+      ListingStatus: true,
+      donor: {
+        UserID: true
+      }
+    }
   })
 
   if (!listing) {

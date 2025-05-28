@@ -78,7 +78,7 @@ export const createFoodListingSchema = Joi.object({
 
   Price: Joi.when('IsDonation', {
     is: false,
-    then: Joi.number()
+    then: Joi.number().strict(false)
       .required()
       .min(0.01)
       .max(999999.99)
@@ -138,7 +138,7 @@ export const updateFoodListingSchema = Joi.object({
       'string.max': 'Description must be at most 500 characters',
     }),
 
-  Price: Joi.number()
+  Price: Joi.number().strict(false)
     .optional()
     .min(0.01)
     .max(999999.99)
@@ -211,7 +211,10 @@ export const negotiatePriceSchema = Joi.object({
 })
 
 export async function validateFoodListingData(data: any) {
-  const { error } = createFoodListingSchema.validate(data)
+   const { error, value } = createFoodListingSchema.validate(data, { 
+    abortEarly: false,
+    convert: true 
+  });
   if (error) {
     throw new ValidationError(error.details[0].message)
   }
@@ -242,4 +245,6 @@ export async function validateFoodListingData(data: any) {
       throw new ValidationError('Pickup window must be at least 1 hour long')
     }
   }
+
+   return value; 
 }

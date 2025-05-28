@@ -18,7 +18,7 @@ export async function createFoodListing(req: Request, res: Response) {
     }
 
     const userId = req.user.UserID
-    const listingData = req.body
+    const listingData = req.body;
     const imageFile = req.file
 
     const result = await foodListingService.createFoodListingWithImage(
@@ -54,7 +54,10 @@ export async function createFoodListing(req: Request, res: Response) {
 export async function getAllFoodListings(req: Request, res: Response) {
   try {
     const filters = req.query
-    const result = await foodListingService.getAllFoodListings(filters)
+    const { page = 1, limit = 10 } = req.query
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
+    
+    const result = await foodListingService.getAllFoodListings(filters, offset, parseInt(limit as string))
     return sendSuccessResponse(res, result, 'Food listings retrieved successfully')
 
   } catch (e: any) {
@@ -168,7 +171,11 @@ export async function getMyFoodListings(req: Request, res: Response) {
 
     const userId = req.user.UserID
     const filters = req.query
-    const result = await foodListingService.getMyFoodListings(userId, filters)
+    // Use page-based pagination like your previous project
+    const { page = 1, limit = 10 } = req.query
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
+    
+    const result = await foodListingService.getMyFoodListings(userId, filters, offset, parseInt(limit as string))
     return sendSuccessResponse(res, result, 'My food listings retrieved successfully')
 
   } catch (e: any) {
@@ -211,7 +218,10 @@ export async function negotiatePrice(req: Request, res: Response) {
 export async function searchFoodListings(req: Request, res: Response) {
   try {
     const searchParams = req.query
-    const result = await foodListingService.searchFoodListings(searchParams)
+    const { page = 1, limit = 10 } = req.query
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
+    
+    const result = await foodListingService.searchFoodListings(searchParams, offset, parseInt(limit as string))
     return sendSuccessResponse(res, result, 'Food listings search completed successfully')
 
   } catch (e: any) {
