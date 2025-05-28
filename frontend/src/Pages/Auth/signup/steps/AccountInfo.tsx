@@ -1,8 +1,9 @@
-import type { ChangeEvent, FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FaUserPlus } from "react-icons/fa6";
+import { BiHide, BiShowAlt } from "react-icons/bi";
 
 interface FieldError {
   _errors: string[];
@@ -40,6 +41,13 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
   handleInputChange,
   onSubmit,
 }) => {
+
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev: boolean) => !prev);
+  }
+
   return (
     <div>
       <h2 className="text-2xl md:text-3xl font-serif font-bold text-dark-text mb-4 flex items-center gap-2">
@@ -131,11 +139,22 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
             </p>
           )}
         </div>
-        <div>
+        <div className="relative">
           <Label htmlFor="password">Password</Label>
+          {showPassword ? (
+            <BiShowAlt
+              className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-500 cursor-pointer h-5 w-5"
+              onClick={togglePasswordVisibility}
+            />
+          ) : (
+            <BiHide
+              className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-500 cursor-pointer h-5 w-5"
+              onClick={togglePasswordVisibility}
+            />
+          )}
           <Input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             className={`mt-1 ${
               errors.password?._errors?.length ? "border-red-500" : ""
@@ -151,11 +170,22 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
             </p>
           )}
         </div>
-        <div>
+        <div className="relative">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
+          {showPassword ? (
+            <BiShowAlt
+              className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-500 cursor-pointer h-5 w-5"
+              onClick={togglePasswordVisibility}
+            />
+          ) : (
+            <BiHide
+              className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-500 cursor-pointer h-5 w-5"
+              onClick={togglePasswordVisibility}
+            />
+          )}
           <Input
             id="confirmPassword"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             className={`mt-1 ${
               errors.confirmPassword?._errors?.length ? "border-red-500" : ""
