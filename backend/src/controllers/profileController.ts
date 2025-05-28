@@ -1,6 +1,15 @@
 import { Request, Response } from 'express'
 import * as profileService from '../services/profileService'
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseHelper'
+import {
+  UserDoesNotExistError,
+  EmailNotVerifiedError,
+  ProfileAlreadyCompletedError,
+  ProfileNotFoundError,
+  CharityOrganizationNotFoundError,
+  InvalidRoleError,
+  ValidationError
+} from '../utils/errors'
 
 export async function completeProfile(req: Request, res: Response) {
   try {
@@ -15,7 +24,21 @@ export async function completeProfile(req: Request, res: Response) {
     return sendSuccessResponse(res, result, 'Profile completed successfully')
 
   } catch (e: any) {
-    return sendErrorResponse(res, e.message, 400)
+    if (e instanceof UserDoesNotExistError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof EmailNotVerifiedError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof ProfileAlreadyCompletedError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof CharityOrganizationNotFoundError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof InvalidRoleError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof ValidationError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else {
+      sendErrorResponse(res, e.message, 500)
+    }
   }
 }
 
@@ -31,7 +54,11 @@ export async function getProfile(req: Request, res: Response) {
     return sendSuccessResponse(res, result, 'Profile retrieved successfully')
 
   } catch (e: any) {
-    return sendErrorResponse(res, e.message, 400)
+    if (e instanceof UserDoesNotExistError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else {
+      sendErrorResponse(res, e.message, 500)
+    }
   }
 }
 
@@ -49,6 +76,14 @@ export async function updateProfile(req: Request, res: Response) {
     return sendSuccessResponse(res, result, 'Profile updated successfully')
 
   } catch (e: any) {
-    return sendErrorResponse(res, e.message, 400)
+    if (e instanceof UserDoesNotExistError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof ProfileNotFoundError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof InvalidRoleError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else {
+      sendErrorResponse(res, e.message, 500)
+    }
   }
 }

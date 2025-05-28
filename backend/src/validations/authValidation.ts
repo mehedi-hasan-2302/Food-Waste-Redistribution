@@ -55,8 +55,9 @@ export const signupSchema = Joi.object({
 
 // Login
 export const loginSchema = Joi.object({
-  Email: Joi.string()
+   Email: Joi.string()
     .email()
+    .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .required()
     .messages({
       'string.empty': 'Email is required',
@@ -75,6 +76,7 @@ export const loginSchema = Joi.object({
 export const verifyEmailSchema = Joi.object({
   Email: Joi.string()
     .email()
+    .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .required()
     .messages({
       'string.empty': 'Email is required',
@@ -88,5 +90,55 @@ export const verifyEmailSchema = Joi.object({
       'string.empty': 'Verification code is required',
       'string.length': 'Verification code must be exactly 6 digits',
       'string.pattern.base': 'Verification code must contain only digits',
+    }),
+})
+
+
+// Request Password Reset
+export const requestPasswordResetSchema = Joi.object({
+   Email: Joi.string()
+    .email()
+    .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    .required()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Email must be a valid email address',
+    }),
+})
+
+
+
+// Reset Password
+export const resetPasswordSchema = Joi.object({
+   Email: Joi.string()
+    .email()
+    .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    .required()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Email must be a valid email address',
+    }),
+  Code: Joi.string()
+    .length(6)
+    .pattern(/^[0-9]{6}$/)
+    .required()
+    .messages({
+      'string.empty': 'Verification code is required',
+      'string.length': 'Verification code must be exactly 6 digits',
+      'string.pattern.base': 'Verification code must contain only digits',
+    }),
+  Password: Joi.string()
+    .min(8)
+    .required()
+    .messages({
+      'string.empty': 'Password is required',
+      'string.min': 'Password must be at least 8 characters',
+    }),
+  ConfirmPassword: Joi.string()
+    .valid(Joi.ref('Password'))
+    .required()
+    .messages({
+      'string.empty': 'Confirm password is required',
+      'any.only': 'Passwords do not match',
     }),
 })

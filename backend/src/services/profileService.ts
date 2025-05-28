@@ -6,6 +6,14 @@ import { Buyer } from '../models/Buyer'
 import { IndependentDelivery } from '../models/IndependentDelivery'
 import { OrganizationVolunteer } from '../models/OrganizationVolunteer'
 import { validateCompleteProfileData , validateUpdateProfileData } from '../validations/profileValidation' 
+import {
+  UserDoesNotExistError,
+  EmailNotVerifiedError,
+  ProfileAlreadyCompletedError,
+  ProfileNotFoundError,
+  CharityOrganizationNotFoundError,
+  InvalidRoleError
+} from '../utils/errors'
 
 export interface DonorSellerProfileInput {
   BusinessName: string
@@ -34,6 +42,7 @@ export interface OrganizationVolunteerProfileInput {
   VolunteerContactPhone: string
 }
 
+
 const userRepo = AppDataSource.getRepository(User)
 const donorSellerRepo = AppDataSource.getRepository(DonorSeller)
 const charityOrgRepo = AppDataSource.getRepository(CharityOrganization)
@@ -48,6 +57,7 @@ function cleanProfileResponse(profile: any): any {
   const { user, ...cleanProfile } = profile
   return cleanProfile
 }
+
 
 export async function completeProfile(
   userId: number,
@@ -65,11 +75,11 @@ export async function completeProfile(
   })
 
   if (!user) {
-    throw new Error('User not found')
+    throw new UserDoesNotExistError()
   }
 
   if (!user.IsEmailVerified) {
-    throw new Error('Email must be verified before completing profile')
+    throw new EmailNotVerifiedError('Email must be verified before completing profile')
   }
 
   const hasExistingProfile = user.donorSeller || 
@@ -79,7 +89,7 @@ export async function completeProfile(
                             user.organizationVolunteer
 
   if (hasExistingProfile) {
-    throw new Error('Profile already completed')
+    throw new ProfileAlreadyCompletedError()
   }
 
   if (profileData.PhoneNumber) {
@@ -113,7 +123,7 @@ export async function completeProfile(
       break
     
     default:
-      throw new Error('Invalid user role')
+      throw new InvalidRoleError()
   }
 
   return {
@@ -128,6 +138,7 @@ export async function completeProfile(
   }
 }
 
+
 async function createDonorSellerProfile(user: User, data: DonorSellerProfileInput) {
   const profile = donorSellerRepo.create({
     user: user,
@@ -136,6 +147,7 @@ async function createDonorSellerProfile(user: User, data: DonorSellerProfileInpu
   
   return await donorSellerRepo.save(profile)
 }
+
 
 async function createCharityOrgProfile(user: User, data: CharityOrgProfileInput) {
   const profile = charityOrgRepo.create({
@@ -149,6 +161,7 @@ async function createCharityOrgProfile(user: User, data: CharityOrgProfileInput)
   return await charityOrgRepo.save(profile)
 }
 
+
 async function createBuyerProfile(user: User, data: BuyerProfileInput) {
   const profile = buyerRepo.create({
     user: user,
@@ -157,6 +170,7 @@ async function createBuyerProfile(user: User, data: BuyerProfileInput) {
   
   return await buyerRepo.save(profile)
 }
+
 
 async function createIndependentDeliveryProfile(user: User, data: IndependentDeliveryProfileInput) {
   const profile = independentDeliveryRepo.create({
@@ -172,13 +186,14 @@ async function createIndependentDeliveryProfile(user: User, data: IndependentDel
   return await independentDeliveryRepo.save(profile)
 }
 
+
 async function createOrganizationVolunteerProfile(user: User, data: OrganizationVolunteerProfileInput) {
   const charityOrg = await charityOrgRepo.findOne({
     where: { ProfileID: data.CharityOrgID }
   })
   
   if (!charityOrg) {
-    throw new Error('Charity organization not found')
+    throw new CharityOrganizationNotFoundError()
   }
 
   const profile = orgVolunteerRepo.create({
@@ -191,6 +206,7 @@ async function createOrganizationVolunteerProfile(user: User, data: Organization
   
   return await orgVolunteerRepo.save(profile)
 }
+
 
 export async function getProfile(userId: number) {
   const user = await userRepo.findOne({
@@ -207,7 +223,7 @@ export async function getProfile(userId: number) {
   })
 
   if (!user) {
-    throw new Error('User not found')
+    throw new UserDoesNotExistError()
   }
 
   const profile = user.donorSeller || 
@@ -232,6 +248,8 @@ export async function getProfile(userId: number) {
   }
 }
 
+
+
 export async function updateProfile(userId: number, updateData: any) {
   const user = await userRepo.findOne({
     where: { UserID: userId },
@@ -245,7 +263,7 @@ export async function updateProfile(userId: number, updateData: any) {
   })
 
   if (!user) {
-    throw new Error('User not found')
+    throw new UserDoesNotExistError()
   }
 
   if (updateData.PhoneNumber !== undefined) {
@@ -260,7 +278,7 @@ export async function updateProfile(userId: number, updateData: any) {
   switch (user.Role) {
     case UserRole.DONOR_SELLER:
       if (!user.donorSeller) {
-        throw new Error('Profile not found')
+        throw new ProfileNotFoundError()
       }
       if (updateData.BusinessName) {
         user.donorSeller.BusinessName = updateData.BusinessName
@@ -270,7 +288,7 @@ export async function updateProfile(userId: number, updateData: any) {
 
     case UserRole.CHARITY_ORG:
       if (!user.charityOrganization) {
-        throw new Error('Profile not found')
+        throw new ProfileNotFoundError()
       }
       if (updateData.OrganizationName) {
         user.charityOrganization.OrganizationName = updateData.OrganizationName
@@ -283,7 +301,7 @@ export async function updateProfile(userId: number, updateData: any) {
 
     case UserRole.BUYER:
       if (!user.buyer) {
-        throw new Error('Profile not found')
+        throw new ProfileNotFoundError()
       }
       if (updateData.DefaultDeliveryAddress) {
         user.buyer.DefaultDeliveryAddress = updateData.DefaultDeliveryAddress
@@ -293,7 +311,7 @@ export async function updateProfile(userId: number, updateData: any) {
 
     case UserRole.INDEP_DELIVERY:
       if (!user.independentDelivery) {
-        throw new Error('Profile not found')
+        throw new ProfileNotFoundError()
       }
       if (updateData.FullName) {
         user.independentDelivery.FullName = updateData.FullName
@@ -306,7 +324,7 @@ export async function updateProfile(userId: number, updateData: any) {
 
     case UserRole.ORG_VOLUNTEER:
       if (!user.organizationVolunteer) {
-        throw new Error('Profile not found')
+        throw new ProfileNotFoundError()
       }
       if (updateData.VolunteerName) {
         user.organizationVolunteer.VolunteerName = updateData.VolunteerName
@@ -318,7 +336,7 @@ export async function updateProfile(userId: number, updateData: any) {
       break
 
     default:
-      throw new Error('Cannot update profile for this role')
+      throw new InvalidRoleError('Cannot update profile for this role')
   }
 
   return {
