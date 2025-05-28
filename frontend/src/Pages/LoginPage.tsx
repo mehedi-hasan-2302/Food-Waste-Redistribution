@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { z } from "zod";
 import React from "react";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 const loginSchema = z.object({
   email: z.string().email("Email is required"),
@@ -10,29 +11,31 @@ const loginSchema = z.object({
 });
 
 
-function LoginPage() {
+const LoginPage: React.FC = () => {
 
     const [email, setEmail] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
+    const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] =
+      React.useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
-        if(id === "email") setEmail(value);
-        if(id === "password") setPassword(value);
+
         console.log(`Input changed: ${id} = ${value}`);
         setErrors((prev) => ({ ...prev, [id]: undefined }));
     }
     const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setErrors({});
 
         const result = loginSchema.safeParse({ email, password });
 
         if (!result.success) {
             const fieldErrors: { email?: string; password?: string } = {};
-      result.error.issues.forEach((issue) => {
-        const field = issue.path[0] as "email" | "password";
-        fieldErrors[field] = issue.message;
+            result.error.issues.forEach((issue) => {
+                const field = issue.path[0] as "email" | "password";
+                fieldErrors[field] = issue.message;
       });
 
       setErrors(fieldErrors);
@@ -41,7 +44,16 @@ function LoginPage() {
         console.log("Login successful:", result.data);
         // Handle successful login logic here
     }
+
+    const openForgotPasswordModal = () => {
+      setIsForgotPasswordModalOpen(true);
+    };
+    const closeForgotPasswordModal = () => {
+      setIsForgotPasswordModalOpen(false);
+    };
+
     return (
+        <>
       <div className="min-h-screen flex items-center justify-center bg-pale-mint px-4">
         <div className="flex flex-col md:flex-row bg-white rounded-2xl shadow-md overflow-hidden max-w-5xl w-full">
           {/* Left side: Form */}
@@ -90,7 +102,17 @@ function LoginPage() {
                 )}
               </div>
 
-              <div className="text-right font-bold text-xs text-dark-text/70 cursor-pointer hover:underline hover:text-brand-green">
+              <div className="text-right font-bold text-xs text-dark-text/70 cursor-pointer hover:underline hover:text-brand-green"
+                onClick={openForgotPasswordModal}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    openForgotPasswordModal();
+                  }
+                }
+            }
+              >
                 Forgot your password?{" "}
                 
               </div>
@@ -138,6 +160,13 @@ function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Component */}
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onClose={closeForgotPasswordModal}
+        />
+      </>
     );
 }
 
