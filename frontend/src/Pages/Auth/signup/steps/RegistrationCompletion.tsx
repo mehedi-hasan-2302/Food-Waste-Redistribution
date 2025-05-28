@@ -22,7 +22,7 @@ const RegistrationCompletion: React.FC<RegistrationCompleteViewProps> = ({
       </p>
       <Button
         onClick={() => alert("Redirecting to login...")} // Implement actual navigation
-        className="w-full md:w-auto mt-8 bg-brand-green hover:bg-brand-green/90 text-white px-8"
+        className="w-full md:w-auto mt-8 bg-brand-green hover:bg-brand-green/90 text-white px-8 cursor-pointer"
       >
         Go to Login
       </Button>

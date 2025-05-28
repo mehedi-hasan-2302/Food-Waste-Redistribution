@@ -1,4 +1,4 @@
-import type { FormEvent } from "react"; // FormEvent might not be needed if it's just a select + next button
+import type { FormEvent } from "react"; 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FiUsers } from "react-icons/fi"; // Example icon
+import { FiUsers } from "react-icons/fi";
 
 interface FieldError {
   _errors: string[];
@@ -16,12 +16,12 @@ interface FieldError {
 
 interface RoleSelectionErrors {
   role?: FieldError;
-  _errors?: string[]; // For form-level errors if the schema had them
+  _errors?: string[];
 }
 
 interface RoleSelectionProps {
   currentRole: string;
-  errors: RoleSelectionErrors; // Updated errors prop type
+  errors: RoleSelectionErrors;
   handleSelectChange: (value: string) => void;
   onNext: () => void;
 }
@@ -34,7 +34,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
 }) => {
   const handleSubmit = (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    onNext(); // Validation is now handled in the parent before calling onNext
+    onNext();
   };
 
   return (
@@ -51,8 +51,6 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
           <Select
             onValueChange={handleSelectChange}
             value={currentRole}
-            // `required` on Select doesn't trigger HTML5 form validation
-            // but is good for clarity. Zod handles actual validation.
           >
             <SelectTrigger
               id="role"
@@ -74,8 +72,8 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
           )}
         </div>
         <Button
-          type="submit" // Changed from onClick to type="submit"
-          className="w-full bg-brand-green hover:bg-brand-green/90 text-white"
+          type="submit"
+          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
           Proceed
         </Button>

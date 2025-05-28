@@ -9,16 +9,6 @@ import RoleSelection from "./steps/RoleSelection";
 import RegistrationCompletion from "./steps/RegistrationCompletion";
 import { z } from "zod/v4";
 
-// interface FormData {
-//   firstName: string;
-//   lastName: string;
-//   email: string;
-//   phone: string;
-//   password: string;
-//   confirmPassword: string;
-//   role: string;
-// }
-
 const AccountInfoSchema = z
   .object({
     firstName: z.string().min(1, "First name is required"),
@@ -48,7 +38,7 @@ const AccountInfoSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
-    path: ["confirmPassword"], // Attach error to confirmPassword field
+    path: ["confirmPassword"],
   });
 
   const RoleSchema = z.object({
@@ -90,8 +80,7 @@ export default function SignupPage() {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
-    // Clear the specific error when the user starts typing
-    // id is a key of FormData, so this is safe
+
     if (formErrors[id as keyof FormData]) {
       setFormErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
@@ -106,7 +95,6 @@ export default function SignupPage() {
     setFormData((prev) => ({ ...prev, role: value }));
     // Clear role error if it exists
     if (formErrors.role) {
-      // This is now type-correct (line 102 area)
       setFormErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
         delete newErrors.role;
@@ -124,7 +112,7 @@ export default function SignupPage() {
 
   const handleAccountInfoSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // setFormErrors({}); // Clear previous specific errors, handled by handleNextStep or initial call
+     setFormErrors({});
 
     const dataToValidate = {
       firstName: formData.firstName,
@@ -139,7 +127,6 @@ export default function SignupPage() {
     if (!result.success) {
       const fieldErrors = result.error.format();
       // Update formErrors with errors from AccountInfoSchema
-      // Since FullFormErrors is a superset, this is fine.
       setFormErrors((prevErrors) => ({ ...prevErrors, ...fieldErrors }));
       console.error("AccountInfo Validation errors:", fieldErrors);
       return;
@@ -156,7 +143,6 @@ export default function SignupPage() {
       !/^\d+$/.test(verificationCode)
     ) {
       alert("Please enter a valid 6-digit verification code.");
-      // Optionally set an error state for this specific input if you have one
       return;
     }
     if (verificationCode === "123456") {
@@ -168,7 +154,6 @@ export default function SignupPage() {
   };
 
   const handleRoleSelectionSubmit = () => {
-    // setFormErrors({}); // Clear previous specific errors
 
     const dataToValidate = { role: formData.role };
     const result = RoleSchema.safeParse(dataToValidate);
@@ -190,7 +175,6 @@ export default function SignupPage() {
         return (
           <AccountInfo
             formData={{
-              // Pass only relevant fields
               firstName: formData.firstName,
               lastName: formData.lastName,
               email: formData.email,
@@ -206,7 +190,7 @@ export default function SignupPage() {
               password: formErrors.password,
               confirmPassword: formErrors.confirmPassword,
               _errors: formErrors._errors, // for form-level errors if any
-            }} // Pass down the errors object
+            }}
             handleInputChange={handleInputChange}
             onSubmit={handleAccountInfoSubmit}
           />
@@ -218,7 +202,6 @@ export default function SignupPage() {
             verificationCode={verificationCode}
             setVerificationCode={setVerificationCode}
             onSubmit={handleVerifyEmailSubmit}
-            // You can also pass an error prop for the verification code if needed
           />
         );
       case 3:

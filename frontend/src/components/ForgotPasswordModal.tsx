@@ -148,7 +148,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
                 </div>
                 <Button
                   type="submit"
-                  className="w-full bg-brand-green hover:bg-brand-green/90 text-white"
+                  className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
                 >
                   Send Verification Code
                 </Button>
@@ -197,7 +197,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
                 </div>
                 <Button
                   type="submit"
-                  className="w-full bg-brand-green hover:bg-brand-green/90 text-white"
+                  className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
                 >
                   Verify Code & Reset
                 </Button>
@@ -209,7 +209,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
                     setIsCodeSent(false);
                     setErrors({});
                   }}
-                  className="w-full text-brand-green text-xs"
+                  className="w-full text-brand-green text-xs cursor-pointer hover:underline"
                 >
                   Didn't receive code? Send again or change email.
                 </Button>

@@ -119,7 +119,7 @@ const LoginPage: React.FC = () => {
 
               <Button
                 type="submit"
-                className="w-full bg-brand-green hover:bg-brand-green/90 text-white"
+                className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
               >
                 Sign in
               </Button>
@@ -133,7 +133,7 @@ const LoginPage: React.FC = () => {
               <div className="flex-grow h-px bg-gray-300"></div>
             </div>
 
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full cursor-pointer">
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
                 alt="Google"

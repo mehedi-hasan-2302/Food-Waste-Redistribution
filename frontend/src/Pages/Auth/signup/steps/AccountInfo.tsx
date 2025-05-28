@@ -8,7 +8,6 @@ interface FieldError {
   _errors: string[];
 }
 
-// Type for the errors object this component expects
 interface AccountInfoStepErrors {
   firstName?: FieldError;
   lastName?: FieldError;
@@ -16,7 +15,7 @@ interface AccountInfoStepErrors {
   phone?: FieldError;
   password?: FieldError;
   confirmPassword?: FieldError;
-  _errors?: string[]; // For form-level errors if any from .refine at object level
+  _errors?: string[]; 
 }
 
 interface FormDataValues {
@@ -174,7 +173,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
         </div>
         <Button
           type="submit"
-          className="w-full bg-brand-green hover:bg-brand-green/90 text-white"
+          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
           Proceed to Email Verification
         </Button>
@@ -189,7 +188,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
       </div>
       <Button
         variant="outline"
-        className="w-full"
+        className="w-full cursor-pointer"
         onClick={() => alert("Google Sign up clicked")}
       >
         <img

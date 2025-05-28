@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 interface VerifyEmailFormProps {
   email: string;
   verificationCode: string;
-  setVerificationCode: (value: string) => void; // Or (e: ChangeEvent<HTMLInputElement>) => void
+  setVerificationCode: (value: string) => void; 
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
 
@@ -42,7 +42,7 @@ const VerifyEmail: React.FC<VerifyEmailFormProps> = ({
         </div>
         <Button
           type="submit"
-          className="w-full bg-brand-green hover:bg-brand-green/90 text-white"
+          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
           Verify Code
         </Button>
