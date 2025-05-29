@@ -10,6 +10,7 @@ import About from './Pages/primary/About.tsx';
 import Contact from './Pages/primary/Contact.tsx';
 import LoginPage from './Pages/Auth/LoginPage.tsx';
 import SignupPage from './Pages/Auth/signup/SignupPage.tsx';
+import NotFound from './Pages/NotFound.tsx';
 
 const router = createBrowserRouter([
   {
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
         path: "signup",
         element: <SignupPage />,
       },
+      {
+        path: "*",
+        element: <NotFound />,
+      }
     ],
   },
 ]);
