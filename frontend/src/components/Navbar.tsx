@@ -1,6 +1,7 @@
 import { Menu, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import {
     Sheet,
     SheetTrigger,
@@ -12,9 +13,9 @@ import {
 } from "@/components/ui/sheet";
 
 const navItems = [
-    { href: "#services", label: "Services" },
-    { href: "#about", label: "About" },
-    { href: "#contact", label: "Contact" },
+    { path: "/services", label: "Services" },
+    { path: "/about", label: "About" },
+    { path: "/contact", label: "Contact" },
 ];
 
 const  Navbar: React.FC = () => {
@@ -24,35 +25,34 @@ const  Navbar: React.FC = () => {
       <header className="sticky top-0 z-50 w-full border-b border-dark-text/10 bg-highlight font-sans">
         <div className="container mx-auto flex h-16 max-w-screen-lg items-center justify-between px-4 md:px-6">
           {/* Logo and Home Link */}
-          <a
-            href="#home"
+          <Link
+            to="/"
             className="flex items-center space-x-2 text-dark-text hover:text-brand-green transition-colors"
-            onClick={() => isSheetOpen && setIsSheetOpen(false)}
           >
             {/* Will be replaced with actual logo component or SVG*/}
             <Sparkles className="h-6 w-6 text-brand-green" />
             <span className="font-serif text-xl text-white font-bold">
               YourLogo
             </span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
+                to={item.path}
                 className="text-sm font-medium text-white hover:text-brand-green transition-colors"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
             <Button
               asChild
               className="bg-light-beige text-dark-text hover:bg-brand-green/50 hover:text-light-beige px-5 py-2.5"
               variant={"outline"}
             >
-              <a href="#login">Login</a>
+              <Link to="/login">Login</Link>
             </Button>
           </nav>
 
@@ -62,7 +62,7 @@ const  Navbar: React.FC = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="text-dark-text bg-light-beige border-dark-text/50 hover:bg-brand-green/50 hover:text-light-beige"
+                className="text-dark-text bg-light-beige border-dark-text/50 hover:bg-brand-green/50 hover:text-light-beige cursor-pointer"
               >
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle navigation menu</span>
@@ -75,10 +75,16 @@ const  Navbar: React.FC = () => {
               hideCloseButton
             >
               <SheetHeader className="border-b border-dark-text/10 p-4 flex flex-row justify-between">
-                <SheetTitle className="flex items-center space-x-2 text-dark-text">
-                  <Sparkles className="h-5 w-5 text-brand-green" />
-                  <span className="font-serif text-lg font-bold">YourLogo</span>
-                </SheetTitle>
+                <SheetClose asChild>
+                  <Link to="/" className="flex items-center space-x-2">
+                    <SheetTitle className="flex items-center space-x-2 text-dark-text">
+                      <Sparkles className="h-5 w-5 text-brand-green" />
+                      <span className="font-serif text-lg font-bold">
+                        YourLogo
+                      </span>
+                    </SheetTitle>
+                  </Link>
+                </SheetClose>
                 <SheetClose asChild>
                   <Button
                     variant="ghost"
@@ -91,15 +97,23 @@ const  Navbar: React.FC = () => {
                 </SheetClose>
               </SheetHeader>
               <div className="flex flex-col items-center space-y-2 p-4">
+                <SheetClose asChild>
+                  <Link
+                    to="/"
+                    className="block rounded-md px-3 py-2.5 text-base font-medium text-dark-text"
+                  >
+                    Home
+                  </Link>
+                </SheetClose>
                 {navItems.map((item) => (
                   <SheetClose asChild key={item.label}>
-                    <a
-                      href={item.href}
-                      className="block rounded-md px-3 py-2.5 text-base font-medium hover:bg-pale-mint hover:text-brand-green focus:bg-pale-mint"
+                    <Link
+                      to={item.path}
+                      className="block rounded-md px-3 py-2.5 text-base font-medium "
                       onClick={() => setIsSheetOpen(false)}
                     >
                       {item.label}
-                    </a>
+                    </Link>
                   </SheetClose>
                 ))}
                 <SheetClose asChild>
@@ -107,7 +121,7 @@ const  Navbar: React.FC = () => {
                     asChild
                     className="w-full mt-4 bg-brand-green text-pale-mint hover:bg-brand-green/90 py-3"
                   >
-                    <a href="#login">Login</a>
+                    <Link to="/login">Login</Link>
                   </Button>
                 </SheetClose>
               </div>
