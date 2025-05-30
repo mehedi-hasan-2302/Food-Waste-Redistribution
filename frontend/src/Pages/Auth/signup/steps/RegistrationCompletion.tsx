@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { FiCheckCircle } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 interface RegistrationCompleteViewProps {
   firstName: string;
@@ -21,10 +22,9 @@ const RegistrationCompletion: React.FC<RegistrationCompleteViewProps> = ({
         You can now proceed to log in or explore the platform.
       </p>
       <Button
-        onClick={() => alert("Redirecting to login...")} // Implement actual navigation
         className="w-full md:w-auto mt-8 bg-brand-green hover:bg-brand-green/90 text-white px-8 cursor-pointer"
       >
-        Go to Login
+        <Link to="/login">Go to Login</Link>
       </Button>
     </div>
   );
