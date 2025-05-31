@@ -11,6 +11,7 @@ import {
   ValidationError
 } from '../utils/errors'
 import fs from 'fs/promises'
+import { MoreThan } from 'typeorm'
 
 export interface FoodListingInput {
   Title: string;
@@ -133,12 +134,14 @@ export async function createFoodListingWithImage(
 }
 
 
+
 export async function getAllFoodListings(filters: FoodListingFilters, offset: number, limit: number) {
   const queryBuilder = foodListingRepo.createQueryBuilder('listing')
     .leftJoinAndSelect('listing.donor', 'donor')
     .leftJoinAndSelect('donor.donorSeller', 'donorSeller')
     .where('listing.ListingStatus = :status', { status: ListingStatus.ACTIVE })
     .andWhere('listing.PickupWindowEnd > :now', { now: new Date() })
+    .andWhere('listing.CreatedAt > :now', { now: new Date(Date.now() - 24 * 60 * 60 * 1000) });
 
   if (filters.foodType) {
     queryBuilder.andWhere('listing.FoodType ILIKE :foodType', { 
@@ -180,7 +183,7 @@ export async function getAllFoodListings(filters: FoodListingFilters, offset: nu
   const formattedListings = listings.map(listing => {
     const baseData = {
       listing: {
-        listingId: listing.ListingID,
+        ListingId: listing.ListingID,
         title: listing.Title,
         description: listing.Description,
         foodType: listing.FoodType,
@@ -231,7 +234,10 @@ export async function getAllFoodListings(filters: FoodListingFilters, offset: nu
 
 export async function getFoodListingById(listingId: number) {
   const listing = await foodListingRepo.findOne({
-    where: { ListingID: listingId },
+    where: { 
+      ListingID: listingId,
+      CreatedAt: MoreThan(new Date(Date.now() - 24 * 60 * 60 * 1000))
+     },
     relations: ['donor', 'donor.donorSeller'],
     select: {
       ListingID: true,
@@ -269,18 +275,24 @@ export async function getFoodListingById(listingId: number) {
     throw new FoodListingNotFoundError()
   }
 
-  if (!listing.IsDonation && (listing.Price ?? 0) > 0) {
-    const price = listing.Price ?? 0;
-    const hoursElapsed = (Date.now() - listing.CreatedAt.getTime()) / (1000 * 60 * 60)
-    const discountRate = Math.min(hoursElapsed * 0.05, 0.5)
-    const dynamicPrice = price * (1 - discountRate)
-    
+  
+  const createdAtTimestamp = new Date(listing.CreatedAt).getTime();
+  const currentTimestamp = Date.now();
+  const hoursElapsed = (currentTimestamp - createdAtTimestamp) / (1000 * 60 * 60);
+
+
+  let discountRate = Math.min(hoursElapsed * 0.05, 0.5);  // Max 50% discount
+  const price = parseFloat((listing.Price ?? 0).toString());
+
+ 
+  if (!listing.IsDonation && price > 0) {
+    const discountedPrice = price * (1 - discountRate);
     return {
       ...listing,
       originalPrice: price,
-      currentPrice: Math.round(dynamicPrice * 100) / 100,
-      discountApplied: Math.round(discountRate * 100)
-    }
+      currentPrice: Math.round(discountedPrice * 100) / 100, 
+      discountApplied: Math.round(discountRate * 100) 
+    };
   }
 
   return listing
@@ -410,7 +422,7 @@ export async function deleteFoodListing(userId: number, listingId: number) {
   }
 
   await foodListingRepo.remove(listing)
-  return { message: 'Food listing deleted successfully' }
+
 }
 
 
@@ -457,7 +469,7 @@ export async function getMyFoodListings(userId: number, filters: FoodListingFilt
 
   const formattedListings = listings.map(listing => ({
     listing: {
-      listingId: listing.ListingID,
+      ListingID: listing.ListingID,
       title: listing.Title,
       description: listing.Description,
       foodType: listing.FoodType,
@@ -547,7 +559,8 @@ export async function searchFoodListings(
     .leftJoinAndSelect('listing.donor', 'donor')
     .leftJoinAndSelect('donor.donorSeller', 'donorSeller')
     .where('listing.ListingStatus = :status', { status: ListingStatus.ACTIVE })
-    .andWhere('listing.PickupWindowStart > :now', { now: new Date() });
+    .andWhere('listing.PickupWindowStart > :now', { now: new Date() })
+    .andWhere('listing.CreatedAt > :now', { now: new Date(Date.now() - 24 * 60 * 60 * 1000) });
 
   if (searchParams.q) {
     queryBuilder.andWhere(
@@ -670,7 +683,7 @@ export async function toggleListingStatus(userId: number, listingId: number, sta
   const updatedListing = await foodListingRepo.save(listing)
 
   return {
-    listingId,
+    ListingID: listingId,
     previousStatus,
     newStatus: status,
     listing: updatedListing

@@ -38,7 +38,7 @@ router.get('/my/listings', requireRoles(['DONOR_SELLER']),getMyFoodListings)
 
 router.get('/my/stats', requireRoles(['DONOR_SELLER']),getFoodListingStats)
 
-router.put('/:id', 
+router.put('/:id/update', 
   uploadImage.single('image'),
   requireRoles(['DONOR_SELLER']),
   validateRequestBody(updateFoodListingSchema),
