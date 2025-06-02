@@ -4,7 +4,6 @@ import { User, UserRole } from '../models/User'
 import { FoodListing, ListingStatus } from '../models/FoodListing'
 import { DonationClaim, ClaimStatus, DonationDeliveryType } from '../models/DonationClaim'
 import { Delivery, DeliveryStatus, DeliveryPersonnelType } from '../models/Delivery'
-import { CharityOrganization } from '../models/CharityOrganization'
 import { OrganizationVolunteer } from '../models/OrganizationVolunteer'
 import {
   UserDoesNotExistError,
@@ -18,7 +17,6 @@ import { sendRealTimeNotification, sendDeliveryNotification } from '../services/
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
 const donationClaimRepo = AppDataSource.getRepository(DonationClaim)
-const orgVolunteerRepo = AppDataSource.getRepository(OrganizationVolunteer)
 const deliveryRepo = AppDataSource.getRepository(Delivery)
 
 export interface CreateDonationClaimInput {
@@ -39,7 +37,7 @@ export interface DonationClaimResponse {
 }
 
 
-export async function createDonationClaim(charityOrgUserId: number, claimData: CreateDonationClaimInput): Promise<DonationClaimResponse> {
+export async function createDonationClaim(charityOrgUserId: number, listingId: number, claimData: CreateDonationClaimInput): Promise<DonationClaimResponse> {
   const charityOrgUser = await userRepo.findOne({
     where: { UserID: charityOrgUserId },
     relations: ['charityOrganization'],
@@ -67,7 +65,7 @@ export async function createDonationClaim(charityOrgUserId: number, claimData: C
   }
 
   const listing = await foodListingRepo.findOne({
-    where: { ListingID: claimData.listingId },
+    where: { ListingID: listingId },
     relations: ['donor'],
     select: {
       ListingID: true,
@@ -101,7 +99,7 @@ export async function createDonationClaim(charityOrgUserId: number, claimData: C
 
   const existingClaim = await donationClaimRepo.findOne({
     where: { 
-      listing: { ListingID: claimData.listingId },
+      listing: { ListingID: listingId },
       ClaimStatus: ClaimStatus.PENDING
     }
   })

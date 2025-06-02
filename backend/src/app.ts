@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes'
 import profileRoutes from './routes/profileRoutes'
 import foodListingRoutes from './routes/foodListingRoutes'
 import orderRoutes from './routes/orderRoutes'
+import donationRoutes from './routes/donationRoutes'
 
 export async function createApp(): Promise<Express> {
   await AppDataSource.initialize()
@@ -16,6 +17,7 @@ export async function createApp(): Promise<Express> {
   app.use('/api/profile', profileRoutes)
   app.use('/api/food-listings', foodListingRoutes)
   app.use('/api/orders', orderRoutes)
+  app.use('/api/donations', donationRoutes)
 
 
   return app 

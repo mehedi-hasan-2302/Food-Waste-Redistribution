@@ -15,9 +15,10 @@ export async function createDonationClaim(req: Request, res: Response) {
     }
 
     const charityOrgUserId = req.user.UserID
+    const foodListingId = parseInt(req.params.id)
     const claimData = req.body
 
-    const result = await donationService.createDonationClaim(charityOrgUserId, claimData)
+    const result = await donationService.createDonationClaim(charityOrgUserId, foodListingId,claimData)
     return sendSuccessResponse(res, result, 'Donation claim created successfully')
 
   } catch (e: any) {

@@ -17,7 +17,7 @@ const router = Router()
 
 router.use(verifyToken)
 
-router.post('/create-claim', requireRoles(["CHARITY_ORG"]), createDonationClaim)
+router.post('/:id/create-claim', requireRoles(["CHARITY_ORG"]), createDonationClaim)
 
 router.post('/:id/authorize-pickup', requireRoles(["DONOR_SELLER"]), authorizeDonationPickup)
 
