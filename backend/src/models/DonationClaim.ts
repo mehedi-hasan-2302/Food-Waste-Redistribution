@@ -16,6 +16,7 @@ export enum ClaimStatus {
   APPROVED  = 'APPROVED',
   REJECTED  = 'REJECTED',
   CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
 }
 
 export enum DonationDeliveryType {
@@ -42,6 +43,9 @@ export class DonationClaim {
 
   @Column({ type: 'enum', enum: ClaimStatus, default: ClaimStatus.PENDING })
   ClaimStatus!: ClaimStatus
+
+  @Column({ type: 'varchar', length: 20, unique: true })
+  PickupCode!: string
 
   @Column({ type: 'enum', enum: DonationDeliveryType })
   DeliveryType!: DonationDeliveryType

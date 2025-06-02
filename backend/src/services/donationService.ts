@@ -13,12 +13,11 @@ import {
   ValidationError
 } from '../utils/errors'
 import { generateUniqueCode } from '../utils/codeGenerator'
-import { sendNotification } from '../services/notificationService'
+import { sendRealTimeNotification, sendDeliveryNotification } from '../services/notificationService'
 
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
 const donationClaimRepo = AppDataSource.getRepository(DonationClaim)
-const charityOrgRepo = AppDataSource.getRepository(CharityOrganization)
 const orgVolunteerRepo = AppDataSource.getRepository(OrganizationVolunteer)
 const deliveryRepo = AppDataSource.getRepository(Delivery)
 
@@ -39,7 +38,7 @@ export interface DonationClaimResponse {
   deliveryType: DonationDeliveryType
 }
 
-// Create donation claim by charity organization
+
 export async function createDonationClaim(charityOrgUserId: number, claimData: CreateDonationClaimInput): Promise<DonationClaimResponse> {
   const charityOrgUser = await userRepo.findOne({
     where: { UserID: charityOrgUserId },
@@ -48,6 +47,8 @@ export async function createDonationClaim(charityOrgUserId: number, claimData: C
       UserID: true,
       Role: true,
       AccountStatus: true,
+      Username: true,
+      PhoneNumber: true,
       charityOrganization: {
         ProfileID: true,
         OrganizationName: true,
@@ -98,7 +99,6 @@ export async function createDonationClaim(charityOrgUserId: number, claimData: C
     throw new ValidationError('Cannot claim your own donation listing')
   }
 
-  // Check if there's already a pending claim for this listing
   const existingClaim = await donationClaimRepo.findOne({
     where: { 
       listing: { ListingID: claimData.listingId },
@@ -110,75 +110,103 @@ export async function createDonationClaim(charityOrgUserId: number, claimData: C
     throw new ValidationError('There is already a pending claim for this donation')
   }
 
-  let assignedVolunteer = null
-  let pickupCode = null
+  // let assignedVolunteer = null
 
-  // For home delivery, assign an organization volunteer
-  if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY) {
-    if (!claimData.deliveryAddress) {
-      throw new ValidationError('Delivery address is required for home delivery')
-    }
+  // if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY) {
+  //   if (!claimData.deliveryAddress) {
+  //     throw new ValidationError('Delivery address is required for home delivery')
+  //   }
 
-    const availableVolunteer = await findAvailableOrgVolunteer(charityOrgUser.charityOrganization.ProfileID)
-    if (!availableVolunteer) {
-      throw new ValidationError('No volunteers available for delivery in your organization')
-    }
-    assignedVolunteer = availableVolunteer
-  }
+  //   const availableVolunteer = await findAvailableOrgVolunteer(charityOrgUser.charityOrganization.ProfileID)
+  //   if (!availableVolunteer) {
+  //     throw new ValidationError('No volunteers available for delivery in your organization')
+  //   }
+  //   assignedVolunteer = availableVolunteer
+  // }
 
-  // Generate unique pickup code for donor authorization
-  pickupCode = generateUniqueCode()
+  const pickupCode = generateUniqueCode()
 
-  // Create donation claim
+
   const claim = new DonationClaim()
   claim.charityOrg = charityOrgUser
   claim.donor = listing.donor
   claim.listing = listing
   claim.ClaimStatus = ClaimStatus.PENDING
   claim.DeliveryType = claimData.deliveryType
+  claim.PickupCode = pickupCode
+  
 
   const savedClaim = await donationClaimRepo.save(claim)
 
-  // Create delivery record if home delivery
-  if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY && assignedVolunteer) {
-    const delivery = new Delivery()
-    delivery.claim = savedClaim
-    delivery.DeliveryPersonnelType = DeliveryPersonnelType.ORG_VOLUNTEER
-    delivery.organizationVolunteer = assignedVolunteer
-    delivery.DeliveryStatus = DeliveryStatus.SCHEDULED
+  const delivery = new Delivery()
+  delivery.claim = savedClaim
+  delivery.DeliveryPersonnelType = DeliveryPersonnelType.ORG_VOLUNTEER
+  delivery.DeliveryStatus = DeliveryStatus.SCHEDULED
 
-    await deliveryRepo.save(delivery)
+  await deliveryRepo.save(delivery)
 
-    // Send notification to assigned volunteer
-    await sendNotification(
-      assignedVolunteer.user.UserID,
-      'NEW_DONATION_DELIVERY',
-      `New donation delivery assigned. Claim ID: ${savedClaim.ClaimID}. Pickup code: ${pickupCode}`,
-      savedClaim.ClaimID
-    )
-  }
 
-  // Update listing status to claimed
+  // if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY && assignedVolunteer) {
+  //   const delivery = new Delivery()
+  //   delivery.claim = savedClaim
+  //   delivery.DeliveryPersonnelType = DeliveryPersonnelType.ORG_VOLUNTEER
+  //   delivery.organizationVolunteer = assignedVolunteer
+  //   delivery.DeliveryStatus = DeliveryStatus.SCHEDULED
+
+  //   await deliveryRepo.save(delivery)
+
+  
+  //   await sendDeliveryNotification(
+  //     charityOrgUser.UserID,
+  //     'NEW_DONATION_DELIVERY',
+  //     `New donation delivery assigned. Claim ID: ${savedClaim.ClaimID}. Pickup code: ${pickupCode}`,
+  //     savedClaim.ClaimID,
+  //     {
+  //       claimId: savedClaim.ClaimID,
+  //       pickupCode: pickupCode,
+  //       pickupLocation: listing.PickupLocation,
+  //       deliveryAddress: claimData.deliveryAddress,
+  //       donorPhone: listing.donor.PhoneNumber,
+  //       organizationName: charityOrgUser.charityOrganization.OrganizationName
+  //     }
+  //   )
+  // }
+
+
   await foodListingRepo.update(
     { ListingID: listing.ListingID },
     { ListingStatus: ListingStatus.CLAIMED }
   )
 
-  // Send notification to donor
-  await sendNotification(
-    listing.donor.UserID,
-    'DONATION_CLAIM_RECEIVED',
-    `Your donation "${listing.Title}" has been claimed by ${charityOrgUser.charityOrganization.OrganizationName}. Pickup code: ${pickupCode}`,
-    savedClaim.ClaimID
-  )
+  
+  await sendRealTimeNotification({
+    recipientId: listing.donor.UserID,
+    type: 'DONATION_CLAIM_RECEIVED',
+    message: `Your donation "${listing.Title}" has been claimed by ${charityOrgUser.charityOrganization.OrganizationName}. Pickup code: ${pickupCode}`,
+    referenceId: savedClaim.ClaimID,
+    priority: 'high',
+    data: {
+      claimId: savedClaim.ClaimID,
+      donationTitle: listing.Title,
+      organizationName: charityOrgUser.charityOrganization.OrganizationName,
+      pickupCode: pickupCode,
+      deliveryType: claimData.deliveryType
+    }
+  })
 
-  // Send notification to charity organization
-  await sendNotification(
-    charityOrgUserId,
-    'DONATION_CLAIM_CREATED',
-    `Donation claim created successfully for "${listing.Title}". Claim ID: ${savedClaim.ClaimID}`,
-    savedClaim.ClaimID
-  )
+  await sendRealTimeNotification({
+    recipientId: charityOrgUserId,
+    type: 'DONATION_CLAIM_CREATED',
+    message: `Donation claim created successfully for "${listing.Title}". Claim ID: ${savedClaim.ClaimID}`,
+    referenceId: savedClaim.ClaimID,
+    priority: 'high',
+    data: {
+      claimId: savedClaim.ClaimID,
+      donationTitle: listing.Title,
+      donorName: listing.donor.Username,
+      pickupCode: pickupCode
+    }
+  })
 
   return {
     claimId: savedClaim.ClaimID,
@@ -195,17 +223,12 @@ export async function createDonationClaim(charityOrgUserId: number, claimData: C
       id: listing.donor.UserID,
       username: listing.donor.Username,
       phone: listing.donor.PhoneNumber
-    },
-    assignedVolunteer: assignedVolunteer ? {
-      id: assignedVolunteer.user.UserID,
-      name: assignedVolunteer.VolunteerName,
-      phone: assignedVolunteer.VolunteerContactPhone
-    } : undefined
+    } 
   }
 }
 
 
-// Donor authorizes pickup for donation (verifies pickup code when volunteer arrives)
+
 export async function authorizeDonationPickup(donorId: number, claimId: number, providedCode: string): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
@@ -214,7 +237,8 @@ export async function authorizeDonationPickup(donorId: number, claimId: number, 
       ClaimID: true,
       ClaimStatus: true,
       DeliveryType: true,
-      donor: { UserID: true },
+      PickupCode: true,
+      donor: { UserID: true, Username: true },
       charityOrg: { 
         UserID: true, 
         charityOrganization: { OrganizationName: true }
@@ -235,54 +259,77 @@ export async function authorizeDonationPickup(donorId: number, claimId: number, 
     throw new ValidationError('Donation claim is not in pending status')
   }
 
-  // Note: You'll need to add PickupCode field to DonationClaim model or handle it differently
-  // For now, assuming the code validation logic
-  if (!validatePickupCode(providedCode, claimId)) {
+  if (claim.PickupCode !== providedCode) {
     throw new ValidationError('Invalid pickup code')
   }
 
-  // Update claim status to approved (pickup authorized)
   claim.ClaimStatus = ClaimStatus.APPROVED
   const updatedClaim = await donationClaimRepo.save(claim)
 
-  if (claim.DeliveryType === DonationDeliveryType.HOME_DELIVERY) {
-    // Update delivery status to in transit
-    if (claim.delivery) {
-      claim.delivery.DeliveryStatus = DeliveryStatus.IN_TRANSIT
-      await deliveryRepo.save(claim.delivery)
+  // if (claim.DeliveryType === DonationDeliveryType.HOME_DELIVERY) {
+  //   if (claim.delivery) {
+  //     claim.delivery.DeliveryStatus = DeliveryStatus.IN_TRANSIT
+  //     await deliveryRepo.save(claim.delivery)
 
-      // Notify volunteer
-      await sendNotification(
-        claim.delivery.organizationVolunteer?.user.UserID || 0,
-        'DONATION_PICKUP_AUTHORIZED',
-        `Donation pickup authorized for claim #${claimId}. Please deliver to organization.`,
-        claimId
-      )
-    }
+    
+  //     await sendRealTimeNotification({
+  //       recipientId: claim.delivery.organizationVolunteer?.user.UserID || 0,
+  //       type: 'DONATION_PICKUP_AUTHORIZED',
+  //       message: `Donation pickup authorized for claim #${claimId}. Please deliver to organization.`,
+  //       referenceId: claimId,
+  //       priority: 'high',
+  //       data: {
+  //         claimId: claimId,
+  //         donationTitle: claim.listing.Title,
+  //         donorName: claim.donor.Username
+  //       }
+  //     })
+  //   }
 
-    // Notify charity organization
-    await sendNotification(
-      claim.charityOrg.UserID,
-      'DONATION_PICKED_UP',
-      `Your claimed donation #${claimId} has been picked up by volunteer and is on the way.`,
-      claimId
+  //   await sendRealTimeNotification({
+  //     recipientId: claim.charityOrg.UserID,
+  //     type: 'DONATION_PICKED_UP',
+  //     message: `Your claimed donation #${claimId} has been picked up by volunteer and is on the way.`,
+  //     referenceId: claimId,
+  //     priority: 'normal',
+  //     data: {
+  //       claimId: claimId,
+  //       donationTitle: claim.listing.Title,
+  //       volunteerName: claim.delivery?.organizationVolunteer?.VolunteerName
+  //     }
+  //   })
+  // }
+
+    claim.ClaimStatus = ClaimStatus.COMPLETED
+    await donationClaimRepo.save(claim)
+
+    await foodListingRepo.update(
+      { ListingID: claim.listing.ListingID },
+      { ListingStatus: ListingStatus.SOLD }
     )
-  } else {
-    // For self pickup, organization has the item now, so complete the claim
-    // This would typically happen when org representative picks up directly
-    // We'll keep it as approved for now, completion happens in a separate step
-  }
+
+
+    await sendRealTimeNotification({
+      recipientId: claim.charityOrg.UserID,
+      type: 'DONATION_COMPLETED',
+      message: `Your claimed donation #${claimId} has been picked up by volunteer and is on the way.`,
+      referenceId: claimId,
+      priority: 'high',
+      data: {
+        claimId: claimId,
+        donationTitle: claim.listing.Title
+      }
+    })
+  
 
   return updatedClaim
 }
 
 
-
-// Complete donation delivery (used by organization volunteer for home delivery)
 export async function completeDonationDelivery(volunteerId: number, claimId: number): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
-    relations: ['donor', 'charityOrg', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user']
+    relations: ['donor', 'charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user']
   })
 
   if (!claim) {
@@ -301,33 +348,53 @@ export async function completeDonationDelivery(volunteerId: number, claimId: num
     throw new ValidationError('Delivery must be in transit to complete')
   }
 
-  // Complete the delivery
+  
+  claim.ClaimStatus = ClaimStatus.COMPLETED
   claim.delivery.DeliveryStatus = DeliveryStatus.DELIVERED
+  
+  await donationClaimRepo.save(claim)
   await deliveryRepo.save(claim.delivery)
 
-  // Send notifications
-  await sendNotification(
-    claim.charityOrg.UserID,
-    'DONATION_DELIVERED',
-    `Your claimed donation #${claimId} has been delivered successfully.`,
-    claimId
+
+  await foodListingRepo.update(
+    { ListingID: claim.listing.ListingID },
+    { ListingStatus: ListingStatus.CLAIMED }
   )
 
-  await sendNotification(
-    claim.donor.UserID,
-    'DONATION_COMPLETED',
-    `Your donation #${claimId} has been successfully delivered to the charity organization.`,
-    claimId
-  )
+  await sendRealTimeNotification({
+    recipientId: claim.charityOrg.UserID,
+    type: 'DONATION_DELIVERED',
+    message: `Your claimed donation #${claimId} has been delivered successfully.`,
+    referenceId: claimId,
+    priority: 'normal',
+    data: {
+      claimId: claimId,
+      donationTitle: claim.listing.Title,
+      organizationName: claim.charityOrg.charityOrganization?.OrganizationName
+    }
+  })
+
+  await sendRealTimeNotification({
+    recipientId: claim.donor.UserID,
+    type: 'DONATION_COMPLETED',
+    message: `Your donation #${claimId} has been successfully delivered to ${claim.charityOrg.charityOrganization?.OrganizationName}.`,
+    referenceId: claimId,
+    priority: 'normal',
+    data: {
+      claimId: claimId,
+      donationTitle: claim.listing.Title,
+      organizationName: claim.charityOrg.charityOrganization?.OrganizationName
+    }
+  })
 
   return claim
 }
 
-// Report donation delivery failure
+
 export async function reportDonationDeliveryFailure(volunteerId: number, claimId: number, reason: string): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
-    relations: ['donor', 'charityOrg', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user']
+    relations: ['donor', 'charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user']
   })
 
   if (!claim) {
@@ -338,33 +405,44 @@ export async function reportDonationDeliveryFailure(volunteerId: number, claimId
     throw new UnauthorizedActionError('You are not assigned to this donation delivery')
   }
 
-  // Update delivery status
+
   claim.delivery.DeliveryStatus = DeliveryStatus.FAILED
   await deliveryRepo.save(claim.delivery)
 
-  // Revert claim status back to pending for potential reassignment
+  
   claim.ClaimStatus = ClaimStatus.PENDING
   await donationClaimRepo.save(claim)
 
-  // Send notifications
-  await sendNotification(
-    claim.charityOrg.UserID,
-    'DONATION_DELIVERY_FAILED',
-    `Donation delivery failed for claim #${claimId}. Reason: ${reason}`,
-    claimId
-  )
+  await sendRealTimeNotification({
+    recipientId: claim.charityOrg.UserID,
+    type: 'DONATION_DELIVERY_FAILED',
+    message: `Donation delivery failed for claim #${claimId}. Reason: ${reason}`,
+    referenceId: claimId,
+    priority: 'high',
+    data: {
+      claimId: claimId,
+      donationTitle: claim.listing.Title,
+      failureReason: reason
+    }
+  })
 
-  await sendNotification(
-    claim.donor.UserID,
-    'DONATION_DELIVERY_FAILED',
-    `Donation delivery failed for claim #${claimId}. Reason: ${reason}`,
-    claimId
-  )
+  await sendRealTimeNotification({
+    recipientId: claim.donor.UserID,
+    type: 'DONATION_DELIVERY_FAILED',
+    message: `Donation delivery failed for claim #${claimId}. Reason: ${reason}`,
+    referenceId: claimId,
+    priority: 'high',
+    data: {
+      claimId: claimId,
+      donationTitle: claim.listing.Title,
+      failureReason: reason
+    }
+  })
 
   return claim
 }
 
-// Get donation claim details
+
 export async function getDonationClaimById(userId: number, claimId: number): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
@@ -378,7 +456,7 @@ export async function getDonationClaimById(userId: number, claimId: number): Pro
     throw new ValidationError('Donation claim not found')
   }
 
-  // Check if user has access to this claim
+
   const hasAccess = claim.donor.UserID === userId || 
                    claim.charityOrg.UserID === userId ||
                    claim.delivery?.organizationVolunteer?.user.UserID === userId
@@ -390,7 +468,7 @@ export async function getDonationClaimById(userId: number, claimId: number): Pro
   return claim
 }
 
-// Get charity organization's claims
+
 export async function getMyDonationClaims(charityOrgUserId: number, offset: number, limit: number): Promise<any> {
   const claims = await donationClaimRepo.find({
     where: { charityOrg: { UserID: charityOrgUserId } },
@@ -403,7 +481,7 @@ export async function getMyDonationClaims(charityOrgUserId: number, offset: numb
   return claims
 }
 
-// Get donor's donation offers (claims on their donations)
+
 export async function getMyDonationOffers(donorId: number, offset: number, limit: number): Promise<any> {
   const offers = await donationClaimRepo.find({
     where: { donor: { UserID: donorId } },
@@ -416,12 +494,12 @@ export async function getMyDonationOffers(donorId: number, offset: number, limit
   return offers
 }
 
-// Get volunteer's assigned donation deliveries
+
 export async function getMyDonationDeliveries(volunteerId: number, offset: number, limit: number): Promise<any> {
   const deliveries = await deliveryRepo.find({
     where: { 
       organizationVolunteer: { user: { UserID: volunteerId } },
-       claim: Not(IsNull()) // Only donation deliveries
+      claim: Not(IsNull()) 
     },
     relations: ['claim', 'claim.donor', 'claim.charityOrg', 'claim.listing'],
     skip: offset,
@@ -432,11 +510,11 @@ export async function getMyDonationDeliveries(volunteerId: number, offset: numbe
   return deliveries
 }
 
-// Cancel donation claim
+
 export async function cancelDonationClaim(userId: number, claimId: number, reason?: string): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
-    relations: ['donor', 'charityOrg', 'listing', 'delivery']
+    relations: ['donor', 'charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery']
   })
 
   if (!claim) {
@@ -447,7 +525,7 @@ export async function cancelDonationClaim(userId: number, claimId: number, reaso
     throw new UnauthorizedActionError('Only donor or charity organization can cancel this claim')
   }
 
-  if (claim.ClaimStatus === ClaimStatus.APPROVED && claim.delivery?.DeliveryStatus === DeliveryStatus.DELIVERED) {
+  if (claim.ClaimStatus === ClaimStatus.COMPLETED) {
     throw new ValidationError('Cannot cancel completed donation delivery')
   }
 
@@ -468,40 +546,77 @@ export async function cancelDonationClaim(userId: number, claimId: number, reaso
     await deliveryRepo.save(claim.delivery)
   }
 
-  // Send notifications
+
   const cancellerRole = claim.donor.UserID === userId ? 'donor' : 'charity organization'
   const otherPartyId = cancellerRole === 'donor' ? claim.charityOrg.UserID : claim.donor.UserID
 
-  await sendNotification(
-    otherPartyId,
-    'DONATION_CLAIM_CANCELLED',
-    `Donation claim #${claimId} has been cancelled by the ${cancellerRole}. ${reason ? 'Reason: ' + reason : ''}`,
-    claimId
-  )
+  await sendRealTimeNotification({
+    recipientId: otherPartyId,
+    type: 'DONATION_CLAIM_CANCELLED',
+    message: `Donation claim #${claimId} has been cancelled by the ${cancellerRole}. ${reason ? 'Reason: ' + reason : ''}`,
+    referenceId: claimId,
+    priority: 'normal',
+    data: {
+      claimId: claimId,
+      donationTitle: claim.listing.Title,
+      cancellerRole: cancellerRole,
+      reason: reason
+    }
+  })
 
   return updatedClaim
 }
 
 
-async function findAvailableOrgVolunteer(charityOrgId: number): Promise<any> {
-  const volunteer = await orgVolunteerRepo.findOne({
-    where: { 
-      charityOrg: { ProfileID: charityOrgId },
-      IsActive: true
-    },
-    relations: ['user'],
-    select: {
-      OrgVolunteerID: true,
-      VolunteerName: true,
-      VolunteerContactPhone: true,
-      user: { UserID: true }
-    }
+export async function getDonationStats(userId: number): Promise<any> {
+  const user = await userRepo.findOne({
+    where: { UserID: userId },
+    select: ['UserID', 'Role']
   })
 
-  return volunteer
+  if (!user) throw new UserDoesNotExistError()
+
+  let stats: any = {}
+
+  if (user.Role === UserRole.CHARITY_ORG) {
+    const claims = await getMyDonationClaims(userId, 0, 1000)
+    stats.claims = {
+      total: claims.length,
+      pending: claims.filter((c: any) => c.ClaimStatus === ClaimStatus.PENDING).length,
+      approved: claims.filter((c: any) => c.ClaimStatus === ClaimStatus.APPROVED).length,
+      completed: claims.filter((c: any) => c.ClaimStatus === ClaimStatus.COMPLETED).length,
+      cancelled: claims.filter((c: any) => c.ClaimStatus === ClaimStatus.CANCELLED).length
+    }
+  }
+
+  if (user.Role === UserRole.DONOR_SELLER) {
+    const offers = await getMyDonationOffers(userId, 0, 1000)
+    stats.offers = {
+      total: offers.length,
+      pending: offers.filter((o: any) => o.ClaimStatus === ClaimStatus.PENDING).length,
+      approved: offers.filter((o: any) => o.ClaimStatus === ClaimStatus.APPROVED).length,
+      completed: offers.filter((o: any) => o.ClaimStatus === ClaimStatus.COMPLETED).length,
+      cancelled: offers.filter((o: any) => o.ClaimStatus === ClaimStatus.CANCELLED).length
+    }
+  }
+
+  return stats
 }
 
+// async function findAvailableOrgVolunteer(charityOrgId: number): Promise<any> {
+//   const volunteer = await orgVolunteerRepo.findOne({
+//     where: { 
+//       charityOrg: { ProfileID: charityOrgId },
+//       IsActive: true
+//     },
+//     relations: ['user'],
+//     select: {
+//       OrgVolunteerID: true,
+//       VolunteerName: true,
+//       VolunteerContactPhone: true,
+//       user: { UserID: true }
+//     }
+//   })
 
-function validatePickupCode(providedCode: string, claimId: number): boolean {
-  return true 
-}
+//   return volunteer
+// }
