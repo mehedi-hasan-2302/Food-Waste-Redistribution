@@ -11,7 +11,8 @@ import {
   ValidationError
 } from '../utils/errors'
 import { generateUniqueCode } from '../utils/codeGenerator'
-import { sendNotification } from '../services/notificationService'
+import { sendRealTimeNotification, sendDeliveryNotification } from '../services/notificationService'
+
 
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
@@ -23,7 +24,7 @@ export interface CreateOrderInput {
   listingId: number
   deliveryType: DeliveryType
   deliveryAddress: string
-  proposedPrice?: number // For negotiated items
+  proposedPrice?: number 
   orderNotes?: string
 }
 
@@ -38,8 +39,8 @@ export interface OrderResponse {
   assignedDeliveryPersonnel?: any
 }
 
-// Create new order for food purchase
-export async function createOrder(buyerId: number, orderData: CreateOrderInput): Promise<OrderResponse> {
+
+export async function createOrder(buyerId: number, listingId: number, orderData: CreateOrderInput): Promise<OrderResponse> {
   const buyer = await userRepo.findOne({
     where: { UserID: buyerId },
     relations: ['buyer'],
@@ -60,7 +61,7 @@ export async function createOrder(buyerId: number, orderData: CreateOrderInput):
   }
 
   const listing = await foodListingRepo.findOne({
-    where: { ListingID: orderData.listingId },
+    where: { ListingID: listingId },
     relations: ['donor'],
     select: {
       ListingID: true,
@@ -93,7 +94,6 @@ export async function createOrder(buyerId: number, orderData: CreateOrderInput):
     throw new ValidationError('Cannot order your own food listing')
   }
 
-  // Calculate dynamic price (with time-based discount)
   const hoursElapsed = (Date.now() - listing.CreatedAt.getTime()) / (1000 * 60 * 60)
   const discountRate = Math.min(hoursElapsed * 0.05, 0.5)
   const currentPrice = (listing.Price ?? 0) * (1 - discountRate)
@@ -102,20 +102,22 @@ export async function createOrder(buyerId: number, orderData: CreateOrderInput):
   let deliveryFee = 0
   let assignedDeliveryPersonnel = null
 
-  // Handle delivery assignment for home delivery
   if (orderData.deliveryType === DeliveryType.HOME_DELIVERY) {
-    const availableDeliveryPersonnel = await findAvailableDeliveryPersonnel(orderData.deliveryAddress)
+    if (!listing.PickupLocation) {
+      throw new ValidationError('Pickup location is not specified for this listing')
+    }
+    
+    const availableDeliveryPersonnel = await findAvailableDeliveryPersonnel(listing.PickupLocation)
     if (!availableDeliveryPersonnel) {
       throw new ValidationError('No delivery personnel available in your area')
     }
+    
     assignedDeliveryPersonnel = availableDeliveryPersonnel
     deliveryFee = calculateDeliveryFee(orderData.deliveryAddress, listing.PickupLocation)
   }
-
-  // Generate unique pickup code
+  
   const pickupCode = generateUniqueCode()
 
-  // Create order
   const order = new Order()
   order.buyer = buyer
   order.seller = listing.donor
@@ -131,7 +133,6 @@ export async function createOrder(buyerId: number, orderData: CreateOrderInput):
 
   const savedOrder = await orderRepo.save(order)
 
-  // Create delivery record if home delivery
   if (orderData.deliveryType === DeliveryType.HOME_DELIVERY && assignedDeliveryPersonnel) {
     const delivery = new Delivery()
     delivery.order = savedOrder
@@ -141,36 +142,52 @@ export async function createOrder(buyerId: number, orderData: CreateOrderInput):
 
     await deliveryRepo.save(delivery)
 
-    // Send notification to delivery personnel
-    await sendNotification(
-      assignedDeliveryPersonnel.user.UserID,
-      'NEW_DELIVERY_REQUEST',
-      `New delivery request for order #${savedOrder.OrderID}. Pickup code: ${pickupCode}`,
-      savedOrder.OrderID
-    )
+        await sendDeliveryNotification(
+        assignedDeliveryPersonnel.user.UserID,
+        'NEW_DELIVERY_REQUEST',
+        `New delivery request for order #${savedOrder.OrderID}. Pickup code: ${pickupCode}`,
+        savedOrder.OrderID,
+        {
+        orderId: savedOrder.OrderID,
+        pickupCode: pickupCode,
+        pickupLocation: listing.PickupLocation,
+        deliveryAddress: orderData.deliveryAddress,
+        customerPhone: buyer.PhoneNumber,
+        sellerPhone: listing.donor.PhoneNumber
+        }
+      )
   }
-
-  // Update listing status to claimed (order placed)
+  
   await foodListingRepo.update(
     { ListingID: order.listing.ListingID },
     { ListingStatus: ListingStatus.CLAIMED }
   )
 
-  // Send notification to seller
-  await sendNotification(
-    listing.donor.UserID,
-    'NEW_ORDER_RECEIVED',
-    `New order received for ${listing.Title}. Pickup code: ${pickupCode}`,
-    savedOrder.OrderID
-  )
+      await sendRealTimeNotification({
+      recipientId: listing.donor.UserID,
+      type: 'NEW_ORDER_RECEIVED',
+      message: `New order received for ${listing.Title}. Pickup code: ${pickupCode}`,
+      referenceId: savedOrder.OrderID,
+      priority: 'high',
+      data: {
+        orderId: savedOrder.OrderID,
+        listingTitle: listing.Title,
+        buyerName: buyer.Username
+      }
+    })
 
-  // Send notification to buyer
-  await sendNotification(
-    buyerId,
-    'ORDER_CREATED',
-    `Order created successfully. Order ID: ${savedOrder.OrderID}`,
-    savedOrder.OrderID
-  )
+      await sendRealTimeNotification({
+      recipientId: buyerId,
+      type: 'NEW_ORDER_RECEIVED',
+      message: `New order received for ${listing.Title}. Pickup code: ${pickupCode}`,
+      referenceId: savedOrder.OrderID,
+      priority: 'high',
+      data: {
+        orderId: savedOrder.OrderID,
+        listingTitle: listing.Title,
+        buyerName: buyer.Username
+      }
+    })
 
   return {
     orderId: savedOrder.OrderID,
@@ -198,7 +215,7 @@ export async function createOrder(buyerId: number, orderData: CreateOrderInput):
   }
 }
 
-// Seller authorizes pickup (verifies pickup code when volunteer/buyer arrives)
+
 export async function authorizePickup(sellerId: number, orderId: number, providedCode: string): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
@@ -230,51 +247,70 @@ export async function authorizePickup(sellerId: number, orderId: number, provide
     throw new ValidationError('Invalid pickup code')
   }
 
-  // Update order status to confirmed (pickup authorized)
   order.OrderStatus = OrderStatus.CONFIRMED
   const updatedOrder = await orderRepo.save(order)
 
   if (order.DeliveryType === DeliveryType.HOME_DELIVERY) {
-    // Update delivery status to in transit
     if (order.delivery) {
       order.delivery.DeliveryStatus = DeliveryStatus.IN_TRANSIT
       await deliveryRepo.save(order.delivery)
     }
 
-    // Notify delivery personnel
-    await sendNotification(
-      order.delivery?.independentDeliveryPersonnel?.UserID || 0,
-      'PICKUP_AUTHORIZED',
-      `Pickup authorized for order #${orderId}. Please deliver to customer.`,
-      orderId
-    )
+        await sendRealTimeNotification({
+        recipientId: order.delivery?.independentDeliveryPersonnel?.UserID || 0,
+        type:  'DELIVERY_UPDATE',
+        message: `Pickup authorized for order #${orderId}. Please deliver to customer.`,
+        referenceId: orderId,
+        priority: 'high',
+        data: {
+          orderId: orderId,
+          listingTitle: order.listing.Title,
+          buyerName: order.buyer.Username
+        }
+    })
 
-    // Notify buyer
-    await sendNotification(
-      order.buyer.UserID,
-      'ORDER_PICKED_UP',
-      `Your order #${orderId} has been picked up by delivery personnel and is on the way.`,
-      orderId
-    )
+
+       await sendRealTimeNotification({
+        recipientId:  order.buyer.UserID,
+        type:  'DELIVERY_UPDATE',
+        message:  `Your order #${orderId} has been picked up by delivery personnel and is on the way.`,
+        referenceId: orderId,
+        priority: 'high',
+        data: {
+          orderId: orderId,
+          listingTitle: order.listing.Title,
+          buyerName: order.seller.Username
+        }
+    })
   } else {
-    // For self pickup, buyer has the item now, so complete the order
     order.OrderStatus = OrderStatus.COMPLETED
     order.PaymentStatus = PaymentStatus.PAID
+
+    foodListingRepo.update(
+      { ListingID: order.listing.ListingID },
+      { ListingStatus: ListingStatus.SOLD }
+    )
+
     await orderRepo.save(order)
 
-    // Notify buyer
-    await sendNotification(
-      order.buyer.UserID,
-      'ORDER_COMPLETED',
-      `Your order #${orderId} has been completed via self-pickup.`,
-      orderId
-    )
+    await sendRealTimeNotification({
+        recipientId:  order.buyer.UserID,
+        type:  'DELIVERY_UPDATE',
+        message:  `Your order #${orderId} has been completed via self-pickup.`,
+        referenceId: orderId,
+        priority: 'high',
+        data: {
+          orderId: orderId,
+          listingTitle: order.listing.Title,
+          buyerName: order.seller.Username
+        }
+    })
   }
 
   return updatedOrder
 }
 
-// Complete delivery (used by delivery personnel for home delivery)
+
 export async function completeDelivery(deliveryPersonnelId: number, orderId: number): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
@@ -297,33 +333,45 @@ export async function completeDelivery(deliveryPersonnelId: number, orderId: num
     throw new ValidationError('Delivery must be in transit to complete')
   }
 
-  // Complete the order
   order.OrderStatus = OrderStatus.COMPLETED
   order.PaymentStatus = PaymentStatus.PAID
   order.delivery.DeliveryStatus = DeliveryStatus.DELIVERED
+  
+  foodListingRepo.update(
+    { ListingID: order.listing.ListingID },
+    { ListingStatus: ListingStatus.SOLD }
+  )
 
   await orderRepo.save(order)
   await deliveryRepo.save(order.delivery)
 
-  // Send notifications
-  await sendNotification(
-    order.buyer.UserID,
-    'ORDER_DELIVERED',
-    `Your order #${orderId} has been delivered successfully.`,
-    orderId
-  )
+  await sendRealTimeNotification({
+    recipientId: order.buyer.UserID,
+    type: 'ORDER_DELIVERED',
+    message: `Your order #${orderId} has been delivered successfully.`,
+    referenceId: orderId,
+    data: {
+      orderId: orderId,
+      listingTitle: order.listing.Title,
+      sellerName: order.seller.Username
+    }
+  })
 
-  await sendNotification(
-    order.seller.UserID,
-    'ORDER_COMPLETED',
-    `Order #${orderId} has been completed and delivered.`,
-    orderId
-  )
+   await sendRealTimeNotification({
+    recipientId: order.seller.UserID,
+    type: 'ORDER_DELIVERED',
+    message: `Order #${orderId} has been completed and delivered successfully.`,
+    referenceId: orderId,
+    data: {
+      orderId: orderId,
+      listingTitle: order.listing.Title,
+      sellerName: order.buyer.Username
+    }
+  })
 
   return order
 }
 
-// Report delivery failure
 export async function reportDeliveryFailure(deliveryPersonnelId: number, orderId: number, reason: string): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
@@ -338,29 +386,37 @@ export async function reportDeliveryFailure(deliveryPersonnelId: number, orderId
     throw new UnauthorizedActionError('You are not assigned to this delivery')
   }
 
-  // Update delivery status
   order.delivery.DeliveryStatus = DeliveryStatus.FAILED
   await deliveryRepo.save(order.delivery)
 
-  // Send notifications
-  await sendNotification(
-    order.buyer.UserID,
-    'DELIVERY_FAILED',
-    `Delivery failed for order #${orderId}. Reason: ${reason}`,
-    orderId
-  )
 
-  await sendNotification(
-    order.seller.UserID,
-    'DELIVERY_FAILED',
-    `Delivery failed for order #${orderId}. Reason: ${reason}`,
-    orderId
-  )
+  await sendRealTimeNotification({
+    recipientId: order.buyer.UserID,
+    type:  'DELIVERY_FAILED',
+    message: `Delivery failed for order #${orderId}. Reason: ${reason}`,
+    referenceId: orderId,
+    data: {
+      orderId: orderId,
+      listingTitle: order.listing.Title,
+      sellerName: order.seller.Username
+    }
+  })
+
+   await sendRealTimeNotification({
+    recipientId: order.seller.UserID,
+    type: 'DELIVERY_FAILED',
+    message: `Delivery failed for order #${orderId}. Reason: ${reason}`,
+    referenceId: orderId,
+    data: {
+      orderId: orderId,
+      listingTitle: order.listing.Title,
+      sellerName: order.buyer.Username
+    }
+  })
 
   return order
 }
 
-// Get order details
 export async function getOrderById(userId: number, orderId: number): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
@@ -374,7 +430,6 @@ export async function getOrderById(userId: number, orderId: number): Promise<any
     throw new ValidationError('Order not found')
   }
 
-  // Check if user has access to this order
   const hasAccess = order.buyer.UserID === userId || 
                    order.seller.UserID === userId ||
                    order.delivery?.independentDeliveryPersonnel?.UserID === userId
@@ -386,8 +441,6 @@ export async function getOrderById(userId: number, orderId: number): Promise<any
   return order
 }
 
-
-// Get user's orders (as buyer)
 export async function getMyOrders(buyerId: number, offset: number, limit: number): Promise<any> {
   const orders = await orderRepo.find({
     where: { buyer: { UserID: buyerId } },
@@ -400,8 +453,6 @@ export async function getMyOrders(buyerId: number, offset: number, limit: number
   return orders
 }
 
-
-// Get user's sales (as seller)
 export async function getMySales(sellerId: number, offset: number, limit: number): Promise<any> {
   const sales = await orderRepo.find({
     where: { seller: { UserID: sellerId } },
@@ -414,8 +465,6 @@ export async function getMySales(sellerId: number, offset: number, limit: number
   return sales
 }
 
-
-// Get delivery personnel's assigned deliveries
 export async function getMyDeliveries(deliveryPersonnelId: number, offset: number, limit: number): Promise<any> {
   const deliveries = await deliveryRepo.find({
     where: { independentDeliveryPersonnel: { UserID: deliveryPersonnelId } },
@@ -428,8 +477,6 @@ export async function getMyDeliveries(deliveryPersonnelId: number, offset: numbe
   return deliveries
 }
 
-
-// Cancel order
 export async function cancelOrder(userId: number, orderId: number, reason?: string): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
@@ -455,45 +502,88 @@ export async function cancelOrder(userId: number, orderId: number, reason?: stri
   order.OrderStatus = OrderStatus.CANCELLED
   const updatedOrder = await orderRepo.save(order)
 
-  // Update listing status back to active
   await foodListingRepo.update(
     { ListingID: order.listing.ListingID },
     { ListingStatus: ListingStatus.ACTIVE }
   )
 
-  // Cancel delivery if exists
   if (order.delivery) {
     order.delivery.DeliveryStatus = DeliveryStatus.FAILED
     await deliveryRepo.save(order.delivery)
   }
 
-  // Send notifications
   const cancellerRole = order.buyer.UserID === userId ? 'buyer' : 'seller'
   const otherPartyId = cancellerRole === 'buyer' ? order.seller.UserID : order.buyer.UserID
 
-  await sendNotification(
-    otherPartyId,
-    'ORDER_CANCELLED',
-    `Order #${orderId} has been cancelled by the ${cancellerRole}. ${reason ? 'Reason: ' + reason : ''}`,
-    orderId
-  )
+     await sendRealTimeNotification({
+    recipientId: otherPartyId,
+    type: 'ORDER_CANCELLED',
+    message: `Order #${orderId} has been cancelled by the ${cancellerRole}. ${reason ? 'Reason: ' + reason : ''}`,
+    referenceId: orderId,
+  
+  })
+
 
   return updatedOrder
 }
 
-// Helper function to find available delivery personnel
-async function findAvailableDeliveryPersonnel(deliveryAddress: string): Promise<any> {
-  // This is a simplified version - you'd implement proper geo-matching logic
-  const deliveryPersonnel = await independentDeliveryRepo.findOne({
-    where: { IsIDVerifiedByAdmin: true },
-    relations: ['user'],
-    order: { CurrentRating: 'DESC' }
-  })
 
-  return deliveryPersonnel
+async function findAvailableDeliveryPersonnel(pickupLocation: string): Promise<any> {
+  try {
+   
+    const allDeliveryPersonnel = await independentDeliveryRepo.find({
+      where: { IsIDVerifiedByAdmin: true },
+      relations: ['user'],
+      select: {
+        ProfileID: true,
+        FullName: true,
+        CurrentRating: true,
+        OperatingAreas: true,
+        user: {
+          UserID: true,
+          Username: true,
+          PhoneNumber: true
+        }
+      }
+    })
+
+    if (!allDeliveryPersonnel || allDeliveryPersonnel.length === 0) {
+      return null
+    }
+
+    const availablePersonnel = allDeliveryPersonnel.filter(personnel => {
+      if (!personnel.OperatingAreas || typeof personnel.OperatingAreas !== 'object') {
+        return false
+      }
+      const operatingAreas = Object.values(personnel.OperatingAreas) as string[]
+      
+      return operatingAreas.some(area => {
+        if (typeof area !== 'string') return false
+        
+        
+        const areaLower = area.toLowerCase().trim()
+        const pickupLower = pickupLocation.toLowerCase().trim()
+        
+        return areaLower.includes(pickupLower) || pickupLower.includes(areaLower)
+      })
+    })
+
+    if (availablePersonnel.length === 0) {
+      return null
+    }
+
+    const randomIndex = Math.floor(Math.random() * availablePersonnel.length)
+    const selectedPersonnel = availablePersonnel[randomIndex]
+
+    return selectedPersonnel
+  } catch (error) {
+    console.error('Error finding delivery personnel:', error)
+    return null
+  }
 }
 
-// Helper function to calculate delivery fee
+
 function calculateDeliveryFee(deliveryAddress: string, pickupLocation?: string): number {
+  
   return 50.00 
 }

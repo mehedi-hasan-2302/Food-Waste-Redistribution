@@ -15,6 +15,10 @@ export enum ListingStatus {
   CLAIMED = 'CLAIMED',
   EXPIRED = 'EXPIRED',
   REMOVED = 'REMOVED',
+  SOLD = 'SOLD',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
+  PENDING = 'PENDING',
 }
 
 @Entity({ name: 'FoodListings' })

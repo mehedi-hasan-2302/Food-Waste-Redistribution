@@ -16,9 +16,10 @@ export async function createOrder(req: Request, res: Response) {
     }
 
     const buyerId = req.user.UserID
+    const foodListingId = parseInt(req.params.id)
     const orderData = req.body
 
-    const result = await orderService.createOrder(buyerId, orderData)
+    const result = await orderService.createOrder(buyerId, foodListingId, orderData)
     return sendSuccessResponse(res, result, 'Order created successfully')
 
   } catch (e: any) {

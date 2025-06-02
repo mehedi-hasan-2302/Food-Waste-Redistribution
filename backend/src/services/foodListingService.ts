@@ -110,16 +110,16 @@ export async function createFoodListingWithImage(
   foodListing.Description = listingData.Description;
   foodListing.FoodType = listingData.FoodType;
   foodListing.CookedDate = new Date(listingData.CookedDate);
-  foodListing.IsDonation = listingData.IsDonation;
+  foodListing.IsDonation = validatedData.IsDonation;
   foodListing.Price = validatedData.Price;
   foodListing.ImagePath = imageUrl;
   foodListing.ImagePublicId = imagePublicId;
-  foodListing.Quantity = listingData.Quantity;
-  foodListing.DietaryInfo = listingData.DietaryInfo;
+  foodListing.Quantity = validatedData.Quantity;
+  foodListing.DietaryInfo = validatedData.DietaryInfo;
   foodListing.ListingStatus = ListingStatus.ACTIVE;
   foodListing.PickupWindowStart = pickupStart;
   foodListing.PickupWindowEnd = pickupEnd;
-  foodListing.PickupLocation = listingData.PickupLocation;
+  foodListing.PickupLocation = validatedData.PickupLocation;
 
   const savedListing = await foodListingRepo.save(foodListing);
 
