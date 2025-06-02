@@ -11,6 +11,8 @@ import Contact from './Pages/primary/Contact.tsx';
 import LoginPage from './Pages/Auth/LoginPage.tsx';
 import SignupPage from './Pages/Auth/signup/SignupPage.tsx';
 import NotFound from './Pages/NotFound.tsx';
+import FoodDisplayPage from './Pages/primary/FoodDisplayPage.tsx';
+import FoodListPage from './Pages/primary/FoodListPage.tsx';
 
 const router = createBrowserRouter([
   {
@@ -42,9 +44,17 @@ const router = createBrowserRouter([
         element: <SignupPage />,
       },
       {
+        path: "foods", // Route for the list of all food items
+        element: <FoodListPage />,
+      },
+      {
+        path: "food/:itemId", // Dynamic route for a single food item detail
+        element: <FoodDisplayPage />,
+      },
+      {
         path: "*",
         element: <NotFound />,
-      }
+      },
     ],
   },
 ]);
