@@ -114,9 +114,10 @@ export async function login(data: LoginInput) {
     Username: user.Username,
     Email: user.Email,
     PhoneNumber: user.PhoneNumber,
-    Role: user.Role,
+    Role: user.Role
   }
 
+  
   return {
     token,
     user: commonUserData
