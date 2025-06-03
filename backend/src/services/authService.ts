@@ -109,8 +109,17 @@ export async function login(data: LoginInput) {
     { expiresIn: '24h' }
   )
 
+  const commonUserData = {
+    UserID: user.UserID,
+    Username: user.Username,
+    Email: user.Email,
+    PhoneNumber: user.PhoneNumber,
+    Role: user.Role,
+  }
+
   return {
-    token
+    token,
+    user: commonUserData
   }
 }
 
