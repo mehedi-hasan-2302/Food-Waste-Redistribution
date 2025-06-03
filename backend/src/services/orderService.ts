@@ -312,7 +312,7 @@ export async function authorizePickup(sellerId: number, orderId: number, provide
 }
 
 
-export async function completeDelivery(deliveryPersonnelId: number, orderId: number): Promise<any> {
+export async function completeDelivery(buyerId: number, orderId: number): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
     relations: ['seller', 'buyer', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel']
@@ -322,7 +322,7 @@ export async function completeDelivery(deliveryPersonnelId: number, orderId: num
     throw new ValidationError('Order not found')
   }
 
-  if (!order.delivery || order.delivery.independentDeliveryPersonnel?.UserID !== deliveryPersonnelId) {
+  if (!order.delivery || order.buyer.UserID !== buyerId) {
     throw new UnauthorizedActionError('You are not assigned to this delivery')
   }
 

@@ -23,7 +23,7 @@ router.post('/:id/create-order', requireRoles(["DONOR_SELLER", "INDEP_DELIVERY",
 
 router.post('/:id/authorize-pickup', requireRoles(["DONOR_SELLER"]),  authorizePickup)
 
-router.post('/:id/complete-delivery', requireRoles(["INDEP_DELIVERY", "ORG_VOLUNTEER", "BUYER"]),completeDelivery)
+router.post('/:id/complete-delivery', requireRoles(["CHARITY_ORG", "BUYER"]),completeDelivery)
 
 router.post('/:id/report-failure', requireRoles(["INDEP_DELIVERY", "ORG_VOLUNTEER"]), reportDeliveryFailure)
 

@@ -78,14 +78,14 @@ export async function completeDelivery(req: Request, res: Response) {
       return sendErrorResponse(res, 'User not authenticated', 401)
     }
 
-    const deliveryPersonnelId = req.user.UserID
+    const buyerId = req.user.UserID
     const orderId = parseInt(req.params.id)
 
     if (isNaN(orderId)) {
       return sendErrorResponse(res, 'Invalid order ID', 400)
     }
 
-    const result = await orderService.completeDelivery(deliveryPersonnelId, orderId)
+    const result = await orderService.completeDelivery(buyerId, orderId)
     return sendSuccessResponse(res, result, 'Delivery completed successfully')
 
   } catch (e: any) {
