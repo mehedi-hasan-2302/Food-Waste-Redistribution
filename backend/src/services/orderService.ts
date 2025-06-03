@@ -149,6 +149,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
         savedOrder.OrderID,
         {
         orderId: savedOrder.OrderID,
+        priority: 'high',
         pickupCode: pickupCode,
         pickupLocation: listing.PickupLocation,
         deliveryAddress: orderData.deliveryAddress,
