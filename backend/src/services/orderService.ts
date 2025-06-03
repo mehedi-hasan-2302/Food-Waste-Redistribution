@@ -347,7 +347,7 @@ export async function completeDelivery(buyerId: number, orderId: number): Promis
   await deliveryRepo.save(order.delivery)
 
   await sendRealTimeNotification({
-    recipientId: order.buyer.UserID,
+    recipientId: order.delivery.independentDeliveryPersonnel?.UserID ?? 0,
     type: 'ORDER_DELIVERED',
     message: `Your order #${orderId} has been delivered successfully.`,
     referenceId: orderId,

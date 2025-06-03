@@ -389,14 +389,67 @@ export async function completeDonationDelivery(charityOrgId: number, claimId: nu
     }
   })
 
-  return claim
+  return {
+    ClaimID: claim.ClaimID,
+    ClaimStatus: claim.ClaimStatus,
+    PickupCode: claim.PickupCode,
+    DeliveryType: claim.DeliveryType,
+    donor: claim.donor,
+    charityOrg: claim.charityOrg,
+    listing: claim.listing,
+    delivery: claim.delivery
+  }
 }
 
 
 export async function reportDonationDeliveryFailure(volunteerId: number, claimId: number, reason: string): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
-    relations: ['donor', 'charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user']
+    relations: ['donor', 'charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user'],
+    select: {
+      ClaimID: true,
+      ClaimStatus: true,
+      DeliveryType: true,
+      PickupCode: true,
+      donor: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        PhoneNumber: true
+      },
+      charityOrg: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        PhoneNumber: true,
+        charityOrganization: {
+          ProfileID: true,
+          OrganizationName: true
+        }
+      },
+      listing: {
+        ListingID: true,
+        Title: true,
+        Description: true,
+        PickupLocation: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryPersonnelType: true,
+        DeliveryStatus: true,
+        organizationVolunteer: {
+          OrgVolunteerID: true,
+          VolunteerName: true,
+          VolunteerContactPhone: true,
+          user: {
+            UserID: true,
+            Username: true,
+            Email: true,
+            PhoneNumber: true
+          }
+        }
+      }
+    }
   })
 
   if (!claim) {
@@ -475,6 +528,34 @@ export async function getMyDonationClaims(charityOrgUserId: number, offset: numb
   const claims = await donationClaimRepo.find({
     where: { charityOrg: { UserID: charityOrgUserId } },
     relations: ['donor', 'listing', 'delivery', 'delivery.organizationVolunteer'],
+    select: {
+      ClaimID: true,
+      ClaimStatus: true,
+      DeliveryType: true,
+      PickupCode: true,
+      donor: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        PhoneNumber: true
+      },
+      listing: {
+        ListingID: true,
+        Title: true,
+        Description: true,
+        PickupLocation: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryPersonnelType: true,
+        DeliveryStatus: true,
+        organizationVolunteer: {
+          OrgVolunteerID: true,
+          VolunteerName: true,
+          VolunteerContactPhone: true
+        }
+      }
+    },
     skip: offset,
     take: limit,
     order: { ClaimID: 'DESC' }
@@ -488,6 +569,33 @@ export async function getMyDonationOffers(donorId: number, offset: number, limit
   const offers = await donationClaimRepo.find({
     where: { donor: { UserID: donorId } },
     relations: ['charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery'],
+     select: {
+      ClaimID: true,
+      ClaimStatus: true,
+      DeliveryType: true,
+      PickupCode: true,
+      charityOrg: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        PhoneNumber: true,
+        charityOrganization: {
+          ProfileID: true,
+          OrganizationName: true
+        }
+      },
+      listing: {
+        ListingID: true,
+        Title: true,
+        Description: true,
+        PickupLocation: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryPersonnelType: true,
+        DeliveryStatus: true
+      }
+    },
     skip: offset,
     take: limit,
     order: { ClaimID: 'DESC' }
@@ -504,6 +612,34 @@ export async function getMyDonationDeliveries(volunteerId: number, offset: numbe
       claim: Not(IsNull()) 
     },
     relations: ['claim', 'claim.donor', 'claim.charityOrg', 'claim.listing'],
+    select: {
+      DeliveryID: true,
+      DeliveryPersonnelType: true,
+      DeliveryStatus: true,
+      claim: {
+        ClaimID: true,
+        ClaimStatus: true,
+        PickupCode: true,
+        donor: {
+          UserID: true,
+          Username: true,
+          Email: true,
+          PhoneNumber: true
+        },
+        charityOrg: {
+          UserID: true,
+          Username: true,
+          Email: true,
+          PhoneNumber: true
+        },
+        listing: {
+          ListingID: true,
+          Title: true,
+          Description: true,
+          PickupLocation: true
+        }
+      }
+    },
     skip: offset,
     take: limit,
     order: { DeliveryID: 'DESC' }
