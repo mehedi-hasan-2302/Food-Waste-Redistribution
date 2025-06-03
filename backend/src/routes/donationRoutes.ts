@@ -21,9 +21,9 @@ router.post('/:id/create-claim', requireRoles(["CHARITY_ORG"]), createDonationCl
 
 router.post('/:id/authorize-pickup', requireRoles(["DONOR_SELLER"]), authorizeDonationPickup)
 
-router.post('/:id/complete-delivery', requireRoles(["ORG_VOLUNTEER"]), completeDonationDelivery)
+router.post('/:id/complete-delivery', requireRoles(["ORG_VOLUNTEER", "CHARITY_ORG"]), completeDonationDelivery)
 
-router.post('/:id/report-failure', requireRoles(["ORG_VOLUNTEER"]), reportDonationDeliveryFailure)
+router.post('/:id/report-failure', requireRoles(["ORG_VOLUNTEER", "CHARITY_ORG"]), reportDonationDeliveryFailure)
 
 router.get('/:id', requireRoles(["DONOR_SELLER", "CHARITY_ORG", "ORG_VOLUNTEER"]), getDonationClaimById)
 

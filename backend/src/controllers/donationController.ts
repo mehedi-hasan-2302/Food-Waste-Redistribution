@@ -74,14 +74,14 @@ export async function completeDonationDelivery(req: Request, res: Response) {
       return sendErrorResponse(res, 'User not authenticated', 401)
     }
 
-    const volunteerId = req.user.UserID
+    const charityOrgId = req.user.UserID
     const claimId = parseInt(req.params.id)
 
     if (isNaN(claimId)) {
       return sendErrorResponse(res, 'Invalid claim ID', 400)
     }
 
-    const result = await donationService.completeDonationDelivery(volunteerId, claimId)
+    const result = await donationService.completeDonationDelivery(charityOrgId, claimId)
     return sendSuccessResponse(res, result, 'Donation delivery completed successfully')
 
   } catch (e: any) {

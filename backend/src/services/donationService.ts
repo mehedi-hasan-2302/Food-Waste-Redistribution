@@ -4,7 +4,6 @@ import { User, UserRole } from '../models/User'
 import { FoodListing, ListingStatus } from '../models/FoodListing'
 import { DonationClaim, ClaimStatus, DonationDeliveryType } from '../models/DonationClaim'
 import { Delivery, DeliveryStatus, DeliveryPersonnelType } from '../models/Delivery'
-import { OrganizationVolunteer } from '../models/OrganizationVolunteer'
 import {
   UserDoesNotExistError,
   FoodListingNotFoundError,
@@ -179,7 +178,7 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
   
   await sendRealTimeNotification({
     recipientId: listing.donor.UserID,
-    type: 'DONATION_CLAIM_RECEIVED',
+    type: 'DONATION_CLAIMED',
     message: `Your donation "${listing.Title}" has been claimed by ${charityOrgUser.charityOrganization.OrganizationName}. Pickup code: ${pickupCode}`,
     referenceId: savedClaim.ClaimID,
     priority: 'high',
@@ -194,7 +193,7 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
 
   await sendRealTimeNotification({
     recipientId: charityOrgUserId,
-    type: 'DONATION_CLAIM_CREATED',
+    type: 'DONATION_CLAIMED',
     message: `Donation claim created successfully for "${listing.Title}". Claim ID: ${savedClaim.ClaimID}`,
     referenceId: savedClaim.ClaimID,
     priority: 'high',
@@ -262,6 +261,11 @@ export async function authorizeDonationPickup(donorId: number, claimId: number, 
   }
 
   claim.ClaimStatus = ClaimStatus.APPROVED
+  if (!claim.delivery) {
+    throw new ValidationError('No delivery record found for this claim');
+  }
+  claim.delivery.DeliveryStatus = DeliveryStatus.IN_TRANSIT
+  await deliveryRepo.save(claim.delivery)
   const updatedClaim = await donationClaimRepo.save(claim)
 
   // if (claim.DeliveryType === DonationDeliveryType.HOME_DELIVERY) {
@@ -298,8 +302,8 @@ export async function authorizeDonationPickup(donorId: number, claimId: number, 
   //   })
   // }
 
-    claim.ClaimStatus = ClaimStatus.COMPLETED
-    await donationClaimRepo.save(claim)
+    // claim.ClaimStatus = ClaimStatus.COMPLETED
+    // await donationClaimRepo.save(claim)
 
     await foodListingRepo.update(
       { ListingID: claim.listing.ListingID },
@@ -309,7 +313,7 @@ export async function authorizeDonationPickup(donorId: number, claimId: number, 
 
     await sendRealTimeNotification({
       recipientId: claim.charityOrg.UserID,
-      type: 'DONATION_COMPLETED',
+      type: 'DONATION_CLAIMED',
       message: `Your claimed donation #${claimId} has been picked up by volunteer and is on the way.`,
       referenceId: claimId,
       priority: 'high',
@@ -324,7 +328,7 @@ export async function authorizeDonationPickup(donorId: number, claimId: number, 
 }
 
 
-export async function completeDonationDelivery(volunteerId: number, claimId: number): Promise<any> {
+export async function completeDonationDelivery(charityOrgId: number, claimId: number): Promise<any> {
   const claim = await donationClaimRepo.findOne({
     where: { ClaimID: claimId },
     relations: ['donor', 'charityOrg', 'charityOrg.charityOrganization', 'listing', 'delivery', 'delivery.organizationVolunteer', 'delivery.organizationVolunteer.user']
@@ -334,7 +338,7 @@ export async function completeDonationDelivery(volunteerId: number, claimId: num
     throw new ValidationError('Donation claim not found')
   }
 
-  if (!claim.delivery || claim.delivery.organizationVolunteer?.user.UserID !== volunteerId) {
+  if (!claim.delivery || claim.charityOrg?.UserID !== charityOrgId) {
     throw new UnauthorizedActionError('You are not assigned to this donation delivery')
   }
 
@@ -361,7 +365,7 @@ export async function completeDonationDelivery(volunteerId: number, claimId: num
 
   await sendRealTimeNotification({
     recipientId: claim.charityOrg.UserID,
-    type: 'DONATION_DELIVERED',
+    type: 'DONATION_CLAIMED',
     message: `Your claimed donation #${claimId} has been delivered successfully.`,
     referenceId: claimId,
     priority: 'normal',
@@ -374,7 +378,7 @@ export async function completeDonationDelivery(volunteerId: number, claimId: num
 
   await sendRealTimeNotification({
     recipientId: claim.donor.UserID,
-    type: 'DONATION_COMPLETED',
+    type: 'DONATION_CLAIMED',
     message: `Your donation #${claimId} has been successfully delivered to ${claim.charityOrg.charityOrganization?.OrganizationName}.`,
     referenceId: claimId,
     priority: 'normal',
