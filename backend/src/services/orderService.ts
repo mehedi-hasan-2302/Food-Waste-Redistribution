@@ -48,6 +48,8 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       UserID: true,
       Role: true,
       AccountStatus: true,
+      Username: true,
+      PhoneNumber: true,
       buyer: {
         ProfileID: true,
         DefaultDeliveryAddress: true
@@ -226,9 +228,28 @@ export async function authorizePickup(sellerId: number, orderId: number, provide
       PickupCode: true,
       OrderStatus: true,
       DeliveryType: true,
-      seller: { UserID: true },
-      buyer: { UserID: true, Username: true },
-      listing: { ListingID: true, Title: true }
+      PaymentStatus: true,
+      seller: { 
+        UserID: true,
+        Username: true
+      },
+      buyer: { 
+        UserID: true, 
+        Username: true,
+        PhoneNumber: true
+      },
+      listing: { 
+        ListingID: true, 
+        Title: true 
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true,
+        independentDeliveryPersonnel: {
+          UserID: true,
+          Username: true
+        }
+      }
     }
   })
 
@@ -308,14 +329,65 @@ export async function authorizePickup(sellerId: number, orderId: number, provide
     })
   }
 
-  return updatedOrder
+  return {
+    OrderID: updatedOrder.OrderID,
+    OrderStatus: updatedOrder.OrderStatus,
+    PaymentStatus: updatedOrder.PaymentStatus,
+    DeliveryType: updatedOrder.DeliveryType,
+    seller: {
+      UserID: order.seller.UserID,
+      Username: order.seller.Username
+    },
+    buyer: {
+      UserID: order.buyer.UserID,
+      Username: order.buyer.Username,
+      PhoneNumber: order.buyer.PhoneNumber
+    },
+    listing: {
+      ListingID: order.listing.ListingID,
+      Title: order.listing.Title
+    },
+    delivery: order.delivery ? {
+      DeliveryID: order.delivery.DeliveryID,
+      DeliveryStatus: order.delivery.DeliveryStatus,
+      independentDeliveryPersonnel: order.delivery.independentDeliveryPersonnel ? {
+        UserID: order.delivery.independentDeliveryPersonnel.UserID,
+        Username: order.delivery.independentDeliveryPersonnel.Username
+      } : null
+    } : null
+  }
 }
 
 
 export async function completeDelivery(buyerId: number, orderId: number): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
-    relations: ['seller', 'buyer', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel']
+    relations: ['seller', 'buyer', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel'],
+    select: {
+      OrderID: true,
+      OrderStatus: true,
+      PaymentStatus: true,
+      seller: { 
+        UserID: true,
+        Username: true
+      },
+      buyer: { 
+        UserID: true, 
+        Username: true
+      },
+      listing: { 
+        ListingID: true, 
+        Title: true 
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true,
+        independentDeliveryPersonnel: {
+          UserID: true,
+          Username: true
+        }
+      }
+    }
   })
 
   if (!order) {
@@ -370,13 +442,60 @@ export async function completeDelivery(buyerId: number, orderId: number): Promis
     }
   })
 
-  return order
+  return {
+    OrderID: order.OrderID,
+    OrderStatus: order.OrderStatus,
+    PaymentStatus: order.PaymentStatus,
+    seller: {
+      UserID: order.seller.UserID,
+      Username: order.seller.Username
+    },
+    buyer: {
+      UserID: order.buyer.UserID,
+      Username: order.buyer.Username
+    },
+    listing: {
+      ListingID: order.listing.ListingID,
+      Title: order.listing.Title
+    },
+    delivery: {
+      DeliveryID: order.delivery.DeliveryID,
+      DeliveryStatus: order.delivery.DeliveryStatus,
+      independentDeliveryPersonnel: order.delivery.independentDeliveryPersonnel ? {
+        UserID: order.delivery.independentDeliveryPersonnel.UserID,
+        Username: order.delivery.independentDeliveryPersonnel.Username
+      } : null
+    }
+  }
 }
 
 export async function reportDeliveryFailure(deliveryPersonnelId: number, orderId: number, reason: string): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
-    relations: ['seller', 'buyer', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel']
+    relations: ['seller', 'buyer', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel'],
+    select: {
+      OrderID: true,
+      seller: { 
+        UserID: true,
+        Username: true
+      },
+      buyer: { 
+        UserID: true, 
+        Username: true
+      },
+      listing: { 
+        ListingID: true, 
+        Title: true 
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true,
+        independentDeliveryPersonnel: {
+          UserID: true,
+          Username: true
+        }
+      }
+    }
   })
 
   if (!order) {
@@ -415,7 +534,25 @@ export async function reportDeliveryFailure(deliveryPersonnelId: number, orderId
     }
   })
 
-  return order
+  return {
+    OrderID: order.OrderID,
+    seller: {
+      UserID: order.seller.UserID,
+      Username: order.seller.Username
+    },
+    buyer: {
+      UserID: order.buyer.UserID,
+      Username: order.buyer.Username
+    },
+    listing: {
+      ListingID: order.listing.ListingID,
+      Title: order.listing.Title
+    },
+    delivery: {
+      DeliveryID: order.delivery.DeliveryID,
+      DeliveryStatus: order.delivery.DeliveryStatus
+    }
+  }
 }
 
 export async function getOrderById(userId: number, orderId: number): Promise<any> {
@@ -424,7 +561,46 @@ export async function getOrderById(userId: number, orderId: number): Promise<any
     relations: [
       'buyer', 'seller', 'listing', 'delivery', 
       'delivery.independentDeliveryPersonnel'
-    ]
+    ],
+    select: {
+      OrderID: true,
+      OrderStatus: true,
+      PaymentStatus: true,
+      DeliveryType: true,
+      DeliveryAddress: true,
+      PickupCode: true,
+      FinalPrice: true,
+      DeliveryFee: true,
+      OrderNotes: true,
+      CreatedAt: true,
+      buyer: {
+        UserID: true,
+        Username: true,
+        PhoneNumber: true
+      },
+      seller: {
+        UserID: true,
+        Username: true,
+        PhoneNumber: true
+      },
+      listing: {
+        ListingID: true,
+        Title: true,
+        Description: true,
+        Price: true,
+        PickupLocation: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true,
+        DeliveryPersonnelType: true,
+        independentDeliveryPersonnel: {
+          UserID: true,
+          Username: true,
+          PhoneNumber: true
+        }
+      }
+    }
   })
 
   if (!order) {
@@ -446,6 +622,34 @@ export async function getMyOrders(buyerId: number, offset: number, limit: number
   const orders = await orderRepo.find({
     where: { buyer: { UserID: buyerId } },
     relations: ['seller', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel'],
+    select: {
+      OrderID: true,
+      OrderStatus: true,
+      PaymentStatus: true,
+      DeliveryType: true,
+      FinalPrice: true,
+      DeliveryFee: true,
+      CreatedAt: true,
+      seller: {
+        UserID: true,
+        Username: true,
+        PhoneNumber: true
+      },
+      listing: {
+        ListingID: true,
+        Title: true,
+        Description: true,
+        PickupLocation: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true,
+        independentDeliveryPersonnel: {
+          UserID: true,
+          Username: true
+        }
+      }
+    },
     skip: offset,
     take: limit,
     order: { OrderID: 'DESC' }
@@ -458,6 +662,34 @@ export async function getMySales(sellerId: number, offset: number, limit: number
   const sales = await orderRepo.find({
     where: { seller: { UserID: sellerId } },
     relations: ['buyer', 'listing', 'delivery', 'delivery.independentDeliveryPersonnel'],
+    select: {
+      OrderID: true,
+      OrderStatus: true,
+      PaymentStatus: true,
+      DeliveryType: true,
+      FinalPrice: true,
+      DeliveryFee: true,
+      CreatedAt: true,
+      buyer: {
+        UserID: true,
+        Username: true,
+        PhoneNumber: true
+      },
+      listing: {
+        ListingID: true,
+        Title: true,
+        Description: true,
+        PickupLocation: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true,
+        independentDeliveryPersonnel: {
+          UserID: true,
+          Username: true
+        }
+      }
+    },
     skip: offset,
     take: limit,
     order: { OrderID: 'DESC' }
@@ -470,6 +702,33 @@ export async function getMyDeliveries(deliveryPersonnelId: number, offset: numbe
   const deliveries = await deliveryRepo.find({
     where: { independentDeliveryPersonnel: { UserID: deliveryPersonnelId } },
     relations: ['order', 'order.buyer', 'order.seller', 'order.listing'],
+    select: {
+      DeliveryID: true,
+      DeliveryStatus: true,
+      DeliveryPersonnelType: true,
+      order: {
+        OrderID: true,
+        OrderStatus: true,
+        DeliveryAddress: true,
+        PickupCode: true,
+        FinalPrice: true,
+        buyer: {
+          UserID: true,
+          Username: true,
+          PhoneNumber: true
+        },
+        seller: {
+          UserID: true,
+          Username: true,
+          PhoneNumber: true
+        },
+        listing: {
+          ListingID: true,
+          Title: true,
+          PickupLocation: true
+        }
+      }
+    },
     skip: offset,
     take: limit,
     order: { DeliveryID: 'DESC' }
@@ -481,7 +740,27 @@ export async function getMyDeliveries(deliveryPersonnelId: number, offset: numbe
 export async function cancelOrder(userId: number, orderId: number, reason?: string): Promise<any> {
   const order = await orderRepo.findOne({
     where: { OrderID: orderId },
-    relations: ['buyer', 'seller', 'listing', 'delivery']
+    relations: ['buyer', 'seller', 'listing', 'delivery'],
+    select: {
+      OrderID: true,
+      OrderStatus: true,
+      buyer: {
+        UserID: true,
+        Username: true
+      },
+      seller: {
+        UserID: true,
+        Username: true
+      },
+      listing: {
+        ListingID: true,
+        Title: true
+      },
+      delivery: {
+        DeliveryID: true,
+        DeliveryStatus: true
+      }
+    }
   })
 
   if (!order) {
@@ -524,8 +803,22 @@ export async function cancelOrder(userId: number, orderId: number, reason?: stri
   
   })
 
-
-  return updatedOrder
+  return {
+    OrderID: updatedOrder.OrderID,
+    OrderStatus: updatedOrder.OrderStatus,
+    buyer: {
+      UserID: order.buyer.UserID,
+      Username: order.buyer.Username
+    },
+    seller: {
+      UserID: order.seller.UserID,
+      Username: order.seller.Username
+    },
+    listing: {
+      ListingID: order.listing.ListingID,
+      Title: order.listing.Title
+    }
+  }
 }
 
 
