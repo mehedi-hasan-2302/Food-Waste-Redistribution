@@ -13,6 +13,7 @@ import SignupPage from './Pages/Auth/signup/SignupPage.tsx';
 import NotFound from './Pages/NotFound.tsx';
 import FoodDisplayPage from './Pages/primary/FoodDisplayPage.tsx';
 import FoodListPage from './Pages/primary/FoodListPage.tsx';
+import UserProfilePage from './Pages/primary/UserProfilePage.tsx';
 
 const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
       {
         path: "food/:itemId", // Dynamic route for a single food item detail
         element: <FoodDisplayPage />,
+      },
+      {
+        path: "profile",
+        element: <UserProfilePage />,
       },
       {
         path: "*",
