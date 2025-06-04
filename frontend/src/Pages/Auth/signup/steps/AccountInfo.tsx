@@ -182,7 +182,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
           type="submit"
           className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
-          Proceed to Email Verification
+          Proceed to Role Selection
         </Button>
       </form>
       {/* Social Logins */}

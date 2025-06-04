@@ -75,7 +75,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
           type="submit"
           className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
-          Proceed
+          Proceed to Email Verification
         </Button>
       </form>
     </div>

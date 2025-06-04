@@ -3,11 +3,11 @@ import { FiCheckCircle } from "react-icons/fi";
 import { Link } from "react-router-dom";
 
 interface RegistrationCompleteViewProps {
-  firstName: string;
+  fullName: string;
 }
 
 const RegistrationCompletion: React.FC<RegistrationCompleteViewProps> = ({
-  firstName,
+  fullName,
 }) => {
   return (
     <div className="text-center font-[Inter]">
@@ -16,7 +16,7 @@ const RegistrationCompletion: React.FC<RegistrationCompleteViewProps> = ({
         Registration Complete!
       </h2>
       <p className="text-md text-dark-text/80 mb-6">
-        Thank you, {firstName}! Your account has been successfully created.
+        Thank you, {fullName}! Your account has been successfully created.
       </p>
       <p className="text-sm text-dark-text/70">
         You can now proceed to log in or explore the platform.
