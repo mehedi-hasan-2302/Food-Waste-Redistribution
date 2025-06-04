@@ -1,0 +1,56 @@
+import FoodItemDetail from "@/components/food/FoodItemDetail";
+import type { FoodItem } from "@/lib/types/FoodItem";
+import sample_food_listings from "@/data/sample_food_listings.json";
+import { useState, useEffect } from "react";
+import { useParams, Link as RouterLink } from "react-router-dom";
+
+const FoodDisplayPage: React.FC = () => {
+  const { itemId } = useParams<{ itemId: string }>();
+  const [item, setItem] = useState<FoodItem | null | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (itemId) {
+      // Simulate fetching item by ID
+      const foundItem = sample_food_listings.find((food) => food.id === itemId);
+      setItem(foundItem || null); // Set to null if not found
+    }
+    setLoading(false);
+  }, [itemId]);
+
+  if (loading || item === undefined) {
+    return (
+      <div className="container mx-auto p-4 text-center text-dark-text">
+        Loading item details...
+      </div>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="container mx-auto p-4 text-center text-dark-text">
+        <h2 className="font-serif text-2xl text-red-600 mb-4">
+          Food Item Not Found
+        </h2>
+        <p>
+          The food item you are looking for does not exist or may have been
+          removed.
+        </p>
+        <RouterLink
+          to="/foods"
+          className="mt-4 inline-block text-highlight hover:underline"
+        >
+          Back to Food List
+        </RouterLink>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-pale-mint min-h-screen py-24">
+      <FoodItemDetail item={item} />
+    </div>
+  );
+};
+
+export default FoodDisplayPage;

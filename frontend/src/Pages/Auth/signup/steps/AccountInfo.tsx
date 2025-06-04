@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FaUserPlus } from "react-icons/fa6";
 import { BiHide, BiShowAlt } from "react-icons/bi";
+import { Link } from "react-router-dom";
 
 interface FieldError {
   _errors: string[];
@@ -230,12 +231,13 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
       </Button>
       <p className="text-xs text-center mt-6 font-[Inter]">
         Already have an account?{" "}
+        <Link to="/login">
         <span
           className="font-bold cursor-pointer hover:underline hover:text-brand-green"
-          onClick={() => alert("Sign in clicked")}
         >
           Sign in
         </span>
+        </Link>
       </p>
     </div>
   );

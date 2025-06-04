@@ -5,6 +5,7 @@ import { BiHide, BiShowAlt } from "react-icons/bi";
 import { z } from "zod";
 import { useState } from "react";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
+import { Link } from "react-router-dom";
 
 const loginSchema = z.object({
   email: z.string().email("Email is required"),
@@ -163,9 +164,11 @@ const LoginPage: React.FC = () => {
 
               <p className="text-xs text-center mt-6">
                 Don’t have an account?{" "}
+                <Link to="/signup">
                 <span className="font-bold cursor-pointer hover:underline hover:text-brand-green">
                   Register Now
                 </span>
+                </Link>
               </p>
             </div>
 
