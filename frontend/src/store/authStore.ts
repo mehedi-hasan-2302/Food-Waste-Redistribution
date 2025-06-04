@@ -22,11 +22,13 @@ interface AuthState {
   user: AppUser | null;
   token: string | null;
   loginError: string | null;
+  signupError: string | null;
   isLoading: boolean;
   isAuthenticated: () => boolean;
   loginSuccess: (userDataFromApi: UserPrimaryData, token: string) => void;
   logout: () => void;
   setLoginError: (error: string | null) => void;
+  setSignupError: (error: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   //method for updating isProfileComplete later
   //updateUserProfileStatus: (isComplete: boolean) => void;
@@ -38,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       loginError: null,
+      signupError: null,
       isLoading: false,
       isAuthenticated: () => !!get().token && !!get().user,
       loginSuccess: (userDataFromApi: UserPrimaryData, token: string) => {
@@ -55,6 +58,9 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, token: null, loginError: null, isLoading: false }),
       setLoginError: (error: string | null) =>
         set({ loginError: error, isLoading: false }),
+      setSignupError: (
+        error: string | null // New: Implement setSignupError
+      ) => set({ signupError: error, isLoading: false }), 
       setIsLoading: (loading: boolean) => set({ isLoading: loading }),
     }),
     {
