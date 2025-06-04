@@ -60,6 +60,9 @@ export class FeedbackComplaint {
   @Column('text', { nullable: true })
   Message?: string
 
+  @Column('text', { nullable: true })
+  AdminNotes?: string
+
   @Column({
     type: 'enum',
     enum: AdminActionStatus,
