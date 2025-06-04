@@ -8,6 +8,7 @@ import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 // zod schema for login validation
 const loginSchema = z.object({
@@ -67,6 +68,7 @@ const LoginPage: React.FC = () => {
       });
 
       setErrors(fieldErrors);
+      toast.warn("Please correct the errors in the form.");
       return;
     }
 
@@ -87,6 +89,7 @@ const LoginPage: React.FC = () => {
             response.data.data.user
           ) {
             loginSuccess(response.data.data.user, response.data.data.token);
+            toast.success("Login successful!.");
             // Navigate to a protected route, e.g., dashboard or home
             // You'll need to decide where to go after login.
             // For now, let's assume '/dashboard' or '/' if profile completion is next.
@@ -108,15 +111,15 @@ const LoginPage: React.FC = () => {
           
         } catch (error) {
           setIsLoading(false);
+          let message =
+            "Login failed. Please check your connection and try again.";
           if (axios.isAxiosError(error) && error.response) {
-            setLoginError(
+            message =
               error.response.data.message ||
-                "Invalid credentials or server error."
-            );
+              "Invalid credentials or server error.";
           } else {
-            setLoginError(
-              "Login failed. Please check your connection and try again."
-            );
+            setLoginError(message);
+            toast.error(message);
             console.error("Login error:", error);
           }
         }
@@ -251,7 +254,7 @@ const LoginPage: React.FC = () => {
                 className="w-full text-base border-dark-text/30 hover:border-brand-green hover:text-brand-green h-11 flex items-center justify-center"
               >
                 <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
                   alt="Google"
                   className="h-5 w-5 mr-2"
                 />
