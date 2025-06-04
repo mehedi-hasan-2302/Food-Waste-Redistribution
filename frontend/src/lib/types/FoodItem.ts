@@ -12,4 +12,11 @@ export interface FoodItem {
     DietaryInfo: string;
     image: string;
     id: string;
+
+    imageFile?: File | null;
+    isOrdered: boolean;
 }
+
+export type FoodItemFormData = Omit<FoodItem, "id" | "isOrdered" | "image"> & {
+  imageFile?: File | null;
+};
