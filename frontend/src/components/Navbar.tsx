@@ -1,7 +1,7 @@
 import { Menu, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     Sheet,
     SheetTrigger,
@@ -11,6 +11,8 @@ import {
     SheetTitle,
     SheetClose,
 } from "@/components/ui/sheet";
+import { useAuthStore } from "@/store/authStore";
+import { toast } from "react-toastify"
 
 const navItems = [
     { path: "/services", label: "Services" },
@@ -20,6 +22,20 @@ const navItems = [
 
 const  Navbar: React.FC = () => {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const logout = useAuthStore((state) => state.logout);
+    const navigate = useNavigate();
+
+    const isLoggedIn = isAuthenticated();
+
+    const handleLogout = () => {
+        logout();
+        toast.info("You have been logged out");
+        navigate("/");
+        if (isSheetOpen) {
+          setIsSheetOpen(false);
+        }
+    };
 
     return (
       <header className="sticky top-0 z-50 w-full border-b border-dark-text/10 bg-highlight font-sans">
@@ -47,13 +63,23 @@ const  Navbar: React.FC = () => {
                 {item.label}
               </Link>
             ))}
-            <Button
-              asChild
-              className="bg-light-beige text-dark-text hover:bg-brand-green/50 hover:text-light-beige px-5 py-2.5"
-              variant={"outline"}
-            >
-              <Link to="/login">Login</Link>
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                onClick={handleLogout}
+                className="bg-red-500 text-white hover:bg-red-600 px-5 py-2.5" // Adjusted style for logout
+                variant={"destructive"} // Or another appropriate variant
+              >
+                Logout
+              </Button>
+            ) : (
+              <Button
+                asChild
+                className="bg-light-beige text-dark-text hover:bg-brand-green/50 hover:text-light-beige px-5 py-2.5"
+                variant={"outline"}
+              >
+                <Link to="/login">Login</Link>
+              </Button>
+            )}
           </nav>
 
           {/* Mobile Navigation Trigger */}
@@ -116,14 +142,26 @@ const  Navbar: React.FC = () => {
                     </Link>
                   </SheetClose>
                 ))}
-                <SheetClose asChild>
-                  <Button
-                    asChild
-                    className="w-full mt-4 bg-brand-green text-pale-mint hover:bg-brand-green/90 py-3"
-                  >
-                    <Link to="/login">Login</Link>
-                  </Button>
-                </SheetClose>
+            {isLoggedIn ? (
+              <SheetClose asChild>
+              <Button
+                onClick={handleLogout}
+                className="w-full mt-2 bg-red-500 text-white hover:bg-red-600 py-3"
+                variant={"destructive"}
+              >
+                Logout
+              </Button>
+            </SheetClose>
+            ) : (
+              <SheetClose asChild>
+                <Button
+                  asChild
+                  className="w-full mt-4 bg-brand-green text-pale-mint hover:bg-brand-green/90 py-3"
+                >
+                  <Link to="/login">Login</Link>
+                </Button>
+              </SheetClose>
+            )}
               </div>
             </SheetContent>
           </Sheet>
