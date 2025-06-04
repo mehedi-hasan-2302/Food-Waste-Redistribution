@@ -307,7 +307,20 @@ export async function getAllFoodListings(filters: any) {
     .orderBy('listing.CreatedAt', 'DESC')
     .getMany()
 
-  return listings
+  return listings.map(listing => ({
+    ...listing,
+    donor: listing.donor ? {
+      UserID: listing.donor.UserID,
+      Username: listing.donor.Username,
+      Email: listing.donor.Email,
+      PhoneNumber: listing.donor.PhoneNumber,
+      Role: listing.donor.Role,
+      RegistrationDate: listing.donor.RegistrationDate,
+      IsEmailVerified: listing.donor.IsEmailVerified,
+      AccountStatus: listing.donor.AccountStatus,
+      donorSeller: listing.donor.donorSeller
+    } : null
+  }))
 }
 
 
