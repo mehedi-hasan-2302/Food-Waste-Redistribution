@@ -14,6 +14,7 @@ import NotFound from './Pages/NotFound.tsx';
 import FoodDisplayPage from './Pages/primary/FoodDisplayPage.tsx';
 import FoodListPage from './Pages/primary/FoodListPage.tsx';
 import UserProfilePage from './Pages/primary/UserProfilePage.tsx';
+import FoodManagementPage from './Pages/primary/FoodManagementPage.tsx';
 
 const router = createBrowserRouter([
   {
@@ -53,8 +54,12 @@ const router = createBrowserRouter([
         element: <FoodDisplayPage />,
       },
       {
-        path: "profile",
+        path: "profile",  // Route for user profile information page
         element: <UserProfilePage />,
+      },
+      {
+        path: "manage",  // Route for food management page
+        element: <FoodManagementPage />,
       },
       {
         path: "*",
