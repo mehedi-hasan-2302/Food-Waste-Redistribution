@@ -12,7 +12,6 @@ interface FieldError {
 
 interface AccountInfoStepErrors {
   fullName?: FieldError;
-  lastName?: FieldError;
   email?: FieldError;
   phone?: FieldError;
   password?: FieldError;
@@ -22,7 +21,6 @@ interface AccountInfoStepErrors {
 
 interface FormDataValues {
   fullName: string;
-  lastName: string;
   email: string;
   phone: string;
   password: string;
