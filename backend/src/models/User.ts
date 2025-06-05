@@ -70,6 +70,9 @@ export class User {
     @Column({ type: 'timestamp', nullable: true })
     passwordResetExpires?: Date | null
 
+    @Column({ type: 'boolean', default: false })
+    isProfileComplete?: boolean
+
     @Column({ type: 'enum', enum: AccountStatus, default: AccountStatus.PENDING })
     AccountStatus!: AccountStatus
 

@@ -104,24 +104,34 @@ export async function completeProfile(
   switch (user.Role) {
     case UserRole.DONOR_SELLER:
       createdProfile = await createDonorSellerProfile(user, profileData as DonorSellerProfileInput)
+      user.isProfileComplete = true
+      await userRepo.save(user)
       break
     
     case UserRole.CHARITY_ORG:
       createdProfile = await createCharityOrgProfile(user, profileData as CharityOrgProfileInput)
+      user.isProfileComplete = true
+      await userRepo.save(user)
       break
-    
+
     case UserRole.BUYER:
       createdProfile = await createBuyerProfile(user, profileData as BuyerProfileInput)
+      user.isProfileComplete = true
+      await userRepo.save(user)
       break
     
     case UserRole.INDEP_DELIVERY:
       createdProfile = await createIndependentDeliveryProfile(user, profileData as IndependentDeliveryProfileInput)
+      user.isProfileComplete = true
+      await userRepo.save(user)
       break
-    
+
     case UserRole.ORG_VOLUNTEER:
       createdProfile = await createOrganizationVolunteerProfile(user, profileData as OrganizationVolunteerProfileInput)
+      user.isProfileComplete = true
+      await userRepo.save(user)
       break
-    
+
     default:
       throw new InvalidRoleError()
   }
@@ -132,7 +142,8 @@ export async function completeProfile(
       Username: user.Username,
       Email: user.Email,
       PhoneNumber: user.PhoneNumber,
-      Role: user.Role
+      Role: user.Role,
+      isProfileComplete: user.isProfileComplete
     },
     profile: cleanProfileResponse(createdProfile)
   }
