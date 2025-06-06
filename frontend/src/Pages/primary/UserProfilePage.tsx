@@ -1,96 +1,75 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import UserProfile from "@/components/profile/UserProfile";
 import type { UserProfileData } from "@/components/profile/UserProfile";
+import { useAuthStore } from "@/store/authStore";
+import { useProfileStore } from "@/store/profileStore";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
-// const initialSampleCharity: UserProfileData = {
-//   fullName: "Jane Smith (Charity Rep)",
-//   phoneNumber: "01987654321",
-//   email: "jane.charity@example.org",
-//   address: "456 Charity Ave, Dhaka",
-//   role: "CHARITY_ORG",
-//   isProfileComplete: false, 
-//   organizationName: undefined,
-//   organizationAddress: undefined,
-//   govRegDocumentUrl: undefined,
-// };
-
-// const initialSampleVolunteer: UserProfileData = {
-//   fullName: "Alex Green (Volunteer)",
-//   phoneNumber: "01555555555",
-//   email: "alex.volunteer@example.net",
-//   address: "101 Service Ln, Dhaka",
-//   role: "VOLUNTEER",
-//   isProfileComplete: false,
-//   operatingAreas: undefined,
-// };
-
-// const sampleDonorSeller: UserProfileData = {
-//   fullName: "Samina Khan (Donor/Seller)",
-//   phoneNumber: "01711223344",
-//   email: "samina.seller@example.com",
-//   address: "202 Commerce Rd, Dhaka",
-//   role: "DONOR_SELLER",
-//   isProfileComplete: false,
-//   businessName: undefined,
-// };
-
-const sampleBuyer: UserProfileData = {
-  fullName: "John Doe (Buyer)",
-  phoneNumber: "01234567890",
-  email: "john.buyer@example.com",
-  address: "123 Buyer St, Apt 4B, Dhaka",
-  role: "BUYER",
-  isProfileComplete: false,
-  defaultDeliveryAddress: undefined,
-};
 
 const UserProfilePage: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<UserProfileData>(sampleBuyer);
+  const {
+    user: authUser,
+    token,
+    isAuthenticated,
+    updateProfileCompletionStatus,
+  } = useAuthStore();
+  const {
+    profile,
+    isLoading,
+    initializeProfile,
+    fetchFullProfile,
+    completeProfile,
+  } = useProfileStore();
 
-  const handleProfileUpdate = (
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser) {
+      navigate("/login");
+      return;
+    }
+
+    if (authUser.isProfileComplete) {
+      fetchFullProfile(token!);
+    } else {
+      initializeProfile(authUser);
+    }
+  }, [
+    authUser,
+    isAuthenticated,
+    navigate,
+    token,
+    fetchFullProfile,
+    initializeProfile,
+  ]);
+
+  const handleProfileUpdate = async (
     role: UserProfileData["role"],
     submittedData: any
   ) => {
-    console.log(`Simulating update for ${role} with data:`, submittedData);
-
-    setCurrentUser((prevUser) => {
-      if (!prevUser || prevUser.role !== role) return prevUser;
-
-      let updatedProfileData = {};
-      if (role === "CHARITY_ORG") {
-        updatedProfileData = {
-          organizationName: submittedData.organizationName,
-          organizationAddress: submittedData.organizationAddress,
-          govRegDocumentUrl: submittedData.govRegDocument
-            ? `docs/${submittedData.govRegDocument.name}`
-            : prevUser.govRegDocumentUrl,
-        };
-      } else if (role === "VOLUNTEER") {
-        updatedProfileData = {
-          operatingAreas: submittedData.operatingAreas
-            .split(",")
-            .map((s: string) => s.trim()),
-          selfieImageUrl: submittedData.selfieImage
-            ? `images/${submittedData.selfieImage.name}`
-            : prevUser.selfieImageUrl,
-          nidImageUrl: submittedData.nidImage
-            ? `images/${submittedData.nidImage.name}`
-            : prevUser.nidImageUrl,
-        };
-      }
-
-      return {
-        ...prevUser,
-        ...updatedProfileData,
-        isProfileComplete: true,
-      };
-    });
+    if (!token) {
+      return;
+    }
+    const wasSuccessful = await completeProfile(token, submittedData);
+    if (wasSuccessful) {
+      updateProfileCompletionStatus(true);
+    }
   };
 
+  if (isLoading || !profile) {
+    return (
+      <div className="bg-pale-mint min-h-screen flex items-center justify-center text-dark-text">
+        <Loader2 className="h-8 w-8 animate-spin mr-2" />
+        Loading user profile...
+      </div>
+    );
+  }
+  
 
   return (
     <div className="bg-pale-mint min-h-screen py-8 sm:py-12 px-4">
-      <UserProfile user={currentUser} onProfileUpdate={handleProfileUpdate} />
+      <UserProfile onProfileUpdate={handleProfileUpdate} />
     </div>
   );
 };

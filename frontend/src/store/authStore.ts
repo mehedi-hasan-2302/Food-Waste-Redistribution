@@ -7,6 +7,7 @@ interface UserPrimaryData {
   Email: string;
   PhoneNumber: string;
   Role: string;
+  isProfileComplete: boolean;
 }
 
 export interface AppUser {
@@ -33,8 +34,6 @@ interface AuthState {
   setPasswordResetError: (error: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   updateProfileCompletionStatus: (isComplete: boolean) => void;
-  //method for updating isProfileComplete later
-  //updateUserProfileStatus: (isComplete: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -54,9 +53,9 @@ export const useAuthStore = create<AuthState>()(
           email: userDataFromApi.Email,
           phoneNumber: userDataFromApi.PhoneNumber,
           role: userDataFromApi.Role,
-          // isProfileComplete is not part of this API login response. It would fethced later.
+          isProfileComplete: userDataFromApi.isProfileComplete || false,
         };
-        set({ user: appUser, token, loginError: null, isLoading: false });
+        set({ user: appUser, token, loginError: null, isLoading: false, passwordResetError: null, signupError: null });
       },
       logout: () =>
         set({
@@ -73,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
         error: string | null // New: Implement setSignupError
       ) => set({ signupError: error, isLoading: false }),
       setPasswordResetError: (
-        error: string | null // New: Implement
+        error: string | null 
       ) => set({ passwordResetError: error, isLoading: false }),
       setIsLoading: (loading: boolean) => set({ isLoading: loading }),
 
