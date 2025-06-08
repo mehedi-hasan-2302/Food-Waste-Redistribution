@@ -1,61 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, type FormEvent } from "react";
 import ProfileDetailItem from "./ProfileDetailItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Image as ImageIcon, ListChecks } from "lucide-react";
+import { Image as ImageIcon, ListChecks, Loader2 } from "lucide-react";
+import { useProfileStore } from "@/store/profileStore";
 
 interface VolunteerFormData {
-  operatingAreas: string;
-  selfieImage?: File;
-  nidImage?: File;
+  FullName: string;
+  OperatingAreas: { [key: string]: string };
+  SelfiePath: string;
+  NIDPath: string;
 }
 
 interface VolunteerProfileDetailsProps {
-  selfieImageUrl?: string;
-  nidImageUrl?: string;
-  operatingAreas?: string[];
-  isEditing: boolean;
-  onSubmitProfile: (formData: VolunteerFormData) => void;
+  onSubmitProfile: (requestBody: VolunteerFormData) => void;
 }
 
 const VolunteerProfileDetails: React.FC<VolunteerProfileDetailsProps> = ({
-  selfieImageUrl: initialSelfieUrl,
-  nidImageUrl: initialNidUrl,
-  operatingAreas: initialOperatingAreas,
-  isEditing,
   onSubmitProfile,
 }) => {
-  const [operatingAreasInput, setOperatingAreasInput] = useState(
-    initialOperatingAreas?.join(", ") || ""
-  );
-  const [selfieFile, setSelfieFile] = useState<File | undefined>();
-  const [nidFile, setNidFile] = useState<File | undefined>();
+  const profile = useProfileStore((state) => state.profile);
+  const isLoading = useProfileStore((state) => state.isLoading);
 
-  const handleSelfieFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (event.target.files && event.target.files[0])
-      setSelfieFile(event.target.files[0]);
-  };
-  const handleNidFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0])
-      setNidFile(event.target.files[0]);
-  };
+  const [operatingAreasInput, setOperatingAreasInput] = useState("");
+  const [selfiePath, setSelfiePath] = useState("");
+  const [nidPath, setNidPath] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    setOperatingAreasInput(profile?.OperatingAreas?.join(", ") || "");
+    setSelfiePath(profile?.SelfiePath || "");
+    setNidPath(profile?.NIDPath || "");
+  }, [profile]);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmitProfile({
-      operatingAreas: operatingAreasInput,
-      selfieImage: selfieFile,
-      nidImage: nidFile,
-    });
+
+    const apiOperatingAreas: { [key: string]: string } = {};
+    operatingAreasInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((area, index) => {
+        apiOperatingAreas[`area${index + 1}`] = area;
+      });
+
+    const requestBody: VolunteerFormData = {
+      FullName: profile?.fullName || "",
+      OperatingAreas: apiOperatingAreas,
+      SelfiePath: selfiePath,
+      NIDPath: nidPath,
+    };
+    onSubmitProfile(requestBody);
   };
 
-  if (!isEditing) {
+  if (profile?.isProfileComplete) {
     // Read-only display
     const renderImageLink = (url: string | undefined, altText: string) => {
-      if (!url || url === "imagepath")
+      if (!url)
         return <span className="italic text-dark-text/60">Not Provided</span>;
       return (
         <a
@@ -76,23 +78,23 @@ const VolunteerProfileDetails: React.FC<VolunteerProfileDetailsProps> = ({
       <>
         <ProfileDetailItem
           label="Selfie Image"
-          value={renderImageLink(initialSelfieUrl, "Selfie")}
+          value={renderImageLink(profile?.SelfiePath, "Selfie")}
         />
         <ProfileDetailItem
           label="NID Image"
-          value={renderImageLink(initialNidUrl, "NID")}
+          value={renderImageLink(profile?.NIDPath, "NID")}
         />
         <ProfileDetailItem
           label="Operating Areas"
           value={
-            initialOperatingAreas && initialOperatingAreas.length > 0 ? (
+            profile?.OperatingAreas && profile?.OperatingAreas.length > 0 ? (
               <ul className="list-disc list-inside space-y-1">
-                {initialOperatingAreas.map((area, index) => (
+                {profile?.OperatingAreas.map((area, index) => (
                   <li key={index} className="flex items-center">
                     <ListChecks
                       size={16}
                       className="text-highlight mr-2 flex-shrink-0"
-                    />{" "}
+                    />
                     {area}
                   </li>
                 ))}
@@ -111,13 +113,13 @@ const VolunteerProfileDetails: React.FC<VolunteerProfileDetailsProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6 font-sans">
       <div>
         <Label
-          htmlFor="operatingAreas"
+          htmlFor="OperatingAreas"
           className="text-base font-medium text-brand-green"
         >
           Operating Areas (comma-separated)
         </Label>
         <Input
-          id="operatingAreas"
+          id="OperatingAreas"
           type="text"
           value={operatingAreasInput}
           onChange={(e) => setOperatingAreasInput(e.target.value)}
@@ -128,48 +130,45 @@ const VolunteerProfileDetails: React.FC<VolunteerProfileDetailsProps> = ({
       </div>
       <div>
         <Label
-          htmlFor="selfieImage"
+          htmlFor="SelfiePath"
           className="text-base font-medium text-brand-green"
         >
           Selfie Image
         </Label>
         <Input
-          id="selfieImage"
-          type="file"
-          onChange={handleSelfieFileChange}
-          className="mt-1 text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pale-mint file:text-brand-green hover:file:bg-brand-green/20"
-          accept="image/*"
+          id="SelfiePath"
+          type="text"
+          value={selfiePath}
+          onChange={(e) => setSelfiePath(e.target.value)}
+          className="mt-1 text-base"
+          placeholder="Enter URL of your selfie image"
+          required
+          disabled={isLoading}
         />
-        {selfieFile && (
-          <p className="text-xs text-dark-text/70 mt-1">
-            Selected: {selfieFile.name}
-          </p>
-        )}
       </div>
       <div>
         <Label
-          htmlFor="nidImage"
+          htmlFor="NIDPath"
           className="text-base font-medium text-brand-green"
         >
           NID Image
         </Label>
         <Input
-          id="nidImage"
-          type="file"
-          onChange={handleNidFileChange}
-          className="mt-1 text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pale-mint file:text-brand-green hover:file:bg-brand-green/20"
-          accept="image/*"
+          id="nidPath"
+          type="text"
+          value={nidPath}
+          onChange={(e) => setNidPath(e.target.value)}
+          className="mt-1 text-base"
+          placeholder="Enter URL of your NID image"
+          required
+          disabled={isLoading}
         />
-        {nidFile && (
-          <p className="text-xs text-dark-text/70 mt-1">
-            Selected: {nidFile.name}
-          </p>
-        )}
       </div>
       <Button
         type="submit"
         className="w-full sm:w-auto bg-highlight hover:bg-highlight/90 text-white text-base py-2.5 px-6"
       >
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Save Volunteer Details
       </Button>
     </form>

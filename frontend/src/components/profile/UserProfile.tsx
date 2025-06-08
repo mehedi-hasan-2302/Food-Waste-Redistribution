@@ -18,21 +18,21 @@ export interface UserProfileData {
   fullName: string;
   phoneNumber: string;
   email: string;
-  role: "BUYER" | "CHARITY_ORG" | "VOLUNTEER" | "DONOR_SELLER" | string;
+  role: "BUYER" | "CHARITY_ORG" | "INDEP_DELIVERY" | "DONOR_SELLER" | string;
   isProfileComplete: boolean;
 
-  defaultDeliveryAddress?: string;
-  organizationName?: string;
-  organizationAddress?: string;
-  govRegDocumentUrl?: string;
-  selfieImageUrl?: string;
-  nidImageUrl?: string;
-  operatingAreas?: string[];
+  DefaultDeliveryAddress?: string;
+  OrganizationName?: string;
+  AddressLine1?: string;
+  GovRegistrationDocPath?: string;
+  SelfiePath?: string;
+  NIDPath?: string;
+  OperatingAreas?: string[];
   BusinessName?: string;
 }
 
 interface UserProfileProps {
-  onProfileUpdate: (role: UserProfileData["role"], data: unknown) => void;
+  onProfileUpdate: (role: UserProfileData["role"], data: any) => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
@@ -42,11 +42,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
   if (!profile) return null;
 
   const handleRoleProfileSubmit = (formData: unknown) => {
+    console.log(
+      "[UserProfile]: Passing data through to parent page...",
+      formData
+    );
     onProfileUpdate(profile.role, formData);
   };
 
   const getRoleSpecifics = () => {
-    const isEditing = !profile.isProfileComplete;
 
     switch (profile.role) {
       case "BUYER":
@@ -54,15 +57,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
           icon: (
             <ShoppingBag className="h-7 w-7 md:h-8 md:w-8 text-highlight" />
           ),
-          title: isEditing
+          title: !profile.isProfileComplete
             ? "Complete Your Buyer Profile"
             : "Buyer Information",
           details: (
-            <BuyerProfileDetails
-              defaultDeliveryAddress={profile.defaultDeliveryAddress}
-              isEditing={isEditing}
-              onSubmitProfile={handleRoleProfileSubmit}
-            />
+            <BuyerProfileDetails onSubmitProfile={handleRoleProfileSubmit} />
           ),
         };
       case "CHARITY_ORG":
@@ -70,33 +69,25 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
           icon: (
             <ShieldCheck className="h-7 w-7 md:h-8 md:w-8 text-highlight" />
           ),
-          title: isEditing
-            ? "Complete Charity Organization Profile"
-            : "Charity Organization Information",
+          title: !profile.isProfileComplete
+            ? "Complete Charity Profile"
+            : "Charity Information",
           details: (
             <CharityOrgProfileDetails
-              organizationName={profile.organizationName}
-              organizationAddress={profile.organizationAddress}
-              govRegDocumentUrl={profile.govRegDocumentUrl}
-              isEditing={isEditing}
               onSubmitProfile={handleRoleProfileSubmit}
             />
           ),
         };
-      case "VOLUNTEER":
+      case "INDEP_DELIVERY":
         return {
           icon: (
             <HeartHandshake className="h-7 w-7 md:h-8 md:w-8 text-highlight" />
           ),
-          title: isEditing
+          title: !profile.isProfileComplete
             ? "Complete Volunteer Profile"
             : "Volunteer Information",
           details: (
             <VolunteerProfileDetails
-              selfieImageUrl={profile.selfieImageUrl}
-              nidImageUrl={profile.nidImageUrl}
-              operatingAreas={profile.operatingAreas}
-              isEditing={isEditing}
               onSubmitProfile={handleRoleProfileSubmit}
             />
           ),
@@ -104,7 +95,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
       case "DONOR_SELLER":
         return {
           icon: <Briefcase className="h-7 w-7 md:h-8 md:w-8 text-highlight" />,
-          title: isEditing
+          title: !profile.isProfileComplete
             ? "Complete Business Profile"
             : "Business Information",
           details: (
@@ -143,8 +134,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
 
       {/* General Information Display */}
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-pale-mint mb-6 md:mb-8">
-        <div className="flex items-center justify-between border-b border-brand-green/30 pb-4 mb-5 md:mb-6">
-        </div>
+        <div className="flex items-center justify-between border-b border-brand-green/30 pb-4 mb-5 md:mb-6"></div>
         <dl className="divide-y divide-pale-mint">
           <ProfileDetailItem label="Full Name" value={profile.fullName} />
           <ProfileDetailItem label="Email Address" value={profile.email} />
@@ -159,12 +149,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
       </div>
 
       {/* Role-Specific Section */}
-      {roleSpecifics && roleSpecifics.details && (
-        <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-pale-mint">
-          {/* ... role specifics header */}
-          {roleSpecifics.details}
+      <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-pale-mint">
+        <div className="flex items-center space-x-3 border-b border-highlight/30 pb-4 mb-6">
+          {roleSpecifics.icon}
+          <h2 className="font-serif text-xl md:text-2xl font-semibold text-dark-text">
+            {roleSpecifics.title}
+          </h2>
         </div>
-      )}
+        {roleSpecifics.details}
+      </div>
     </div>
   );
 };

@@ -1,37 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import ProfileDetailItem from "./ProfileDetailItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useProfileStore } from "@/store/profileStore";
+import { Loader2 } from "lucide-react";
 
 interface BuyerFormData {
-  defaultDeliveryAddress: string;
+  DefaultDeliveryAddress: string;
 }
 
 interface BuyerProfileDetailsProps {
-  defaultDeliveryAddress?: string;
-  isEditing: boolean;
-  onSubmitProfile: (formData: BuyerFormData) => void;
+  onSubmitProfile: (requestBody: BuyerFormData) => void;
 }
 
 const BuyerProfileDetails: React.FC<BuyerProfileDetailsProps> = ({
-  defaultDeliveryAddress: initialAddress,
-  isEditing,
   onSubmitProfile,
 }) => {
-  const [address, setAddress] = useState(initialAddress || "");
+  const profile = useProfileStore((state) => state.profile);
+  const isLoading = useProfileStore((state) => state.isLoading);
+  const [address, setAddress] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    setAddress(profile?.DefaultDeliveryAddress || "");
+  }, [profile?.DefaultDeliveryAddress]);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmitProfile({ defaultDeliveryAddress: address });
+    onSubmitProfile({ DefaultDeliveryAddress: address });
   };
 
-  if (!isEditing) {
+  if (profile?.isProfileComplete) {
     return (
       <>
         <ProfileDetailItem
           label="Default Delivery Address"
-          value={initialAddress}
+          value={profile.DefaultDeliveryAddress || "Not Provided"}
         />
       </>
     );
@@ -41,24 +45,27 @@ const BuyerProfileDetails: React.FC<BuyerProfileDetailsProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6 font-sans">
       <div>
         <Label
-          htmlFor="defaultDeliveryAddress"
+          htmlFor="DefaultDeliveryAddress"
           className="text-base font-medium text-brand-green"
         >
           Default Delivery Address
         </Label>
         <Input
-          id="defaultDeliveryAddress"
+          id="DefaultDeliveryAddress"
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           className="mt-1 text-base"
+          disabled={isLoading}
           required
         />
       </div>
       <Button
         type="submit"
         className="w-full sm:w-auto bg-highlight hover:bg-highlight/90 text-white text-base py-2.5 px-6"
+        disabled={isLoading}
       >
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Save Buyer Details
       </Button>
     </form>

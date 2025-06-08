@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useProfileStore } from "@/store/profileStore";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-
+import { toast } from "react-toastify";
 
 const UserProfilePage: React.FC = () => {
   const {
@@ -49,9 +49,19 @@ const UserProfilePage: React.FC = () => {
     submittedData: any
   ) => {
     if (!token) {
+      toast.error("You must be logged in to update your profile.");
       return;
     }
-    const wasSuccessful = await completeProfile(token, submittedData);
+
+    const payload = submittedData;
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    const wasSuccessful = await completeProfile(token, payload, headers);
+
     if (wasSuccessful) {
       updateProfileCompletionStatus(true);
     }
@@ -66,7 +76,6 @@ const UserProfilePage: React.FC = () => {
     );
   }
   
-
   return (
     <div className="bg-pale-mint min-h-screen py-8 sm:py-12 px-4">
       <UserProfile onProfileUpdate={handleProfileUpdate} />
