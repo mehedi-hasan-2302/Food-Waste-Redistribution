@@ -2,7 +2,10 @@ import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
 import type { UserProfileData } from "@/components/profile/UserProfile";
-import type { AppUser } from "./authStore";
+import { useAuthStore, type AppUser } from "./authStore";
+
+type ApiPayload = FormData | { [key: string]: any };
+type ApiHeaders = { [key: string]: string };
 
 interface ProfileState {
   profile: UserProfileData | null;
@@ -10,7 +13,11 @@ interface ProfileState {
   error: string | null;
   initializeProfile: (authUser: AppUser) => void;
   fetchFullProfile: (token: string) => Promise<void>;
-  completeProfile: (token: string, requestBody: Partial<UserProfileData>) => Promise<boolean>;
+  completeProfile: (
+    token: string,
+    payload: ApiPayload,
+    headers: ApiHeaders
+  ) => Promise<boolean>;
   clearProfile: () => void;
 }
 
@@ -52,7 +59,11 @@ export const useProfileStore = create<ProfileState>((set) => ({
       console.log("Full Profile Data:", response.data.data);
       if (response.data && response.data.status === "success") {
         console.log("Full Profile Data:", response.data.data);
-        const { user, profile, profileCompleted } = response.data.data;
+        const { user, profile, apiProfile, profileCompleted } = response.data.data;
+        let frontendOperatingAreas: string[] = [];
+        if (apiProfile && apiProfile.OperatingAreas) {
+          frontendOperatingAreas = Object.values(apiProfile.OperatingAreas);
+        }
         set({
           profile: {
             id: String(user.UserID),
@@ -62,6 +73,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
             role: user.Role,
             isProfileComplete: profileCompleted,
             ...profile,
+            OperatingAreas: frontendOperatingAreas,
           },
           isLoading: false,
         });
@@ -77,14 +89,14 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
   },
 
-  completeProfile: async (token, requestBody) => {
+  completeProfile: async (token, payload, headers) => {
     set({ isLoading: true, error: null });
     try {
       const response = await axios.post(
         "http://localhost:4000/api/profile/complete",
-        requestBody,
+        payload,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         }
       );
 
@@ -93,8 +105,13 @@ export const useProfileStore = create<ProfileState>((set) => ({
         const { user: updatedUser, profile: updatedProfileDetails } =
           response.data.data;
         console.log(response.data.data);
+        let frontendOperatingAreas: string[] = [];
+        if (updatedProfileDetails && updatedProfileDetails.OperatingAreas) {
+          frontendOperatingAreas = Object.values(
+            updatedProfileDetails.OperatingAreas
+          );
+        }
 
-        // Update this store with the new, complete profile data
         set({
           profile: {
             id: String(updatedUser.UserID),
@@ -104,11 +121,14 @@ export const useProfileStore = create<ProfileState>((set) => ({
             role: updatedUser.Role,
             isProfileComplete: updatedUser.isProfileComplete,
             ...updatedProfileDetails,
+            OperatingAreas: frontendOperatingAreas,
           },
           isLoading: false,
         });
 
-        
+        useAuthStore
+          .getState()
+          .updateProfileCompletionStatus(updatedUser.isProfileComplete);
         return true;
       } else {
         throw new Error(response.data.message || "Update failed.");
