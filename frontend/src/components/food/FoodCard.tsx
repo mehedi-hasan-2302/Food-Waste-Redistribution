@@ -16,19 +16,19 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
   const handleAddToCartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     e.preventDefault();
-    console.log(`Add to cart: ${item.Title} (ID: ${item.id})`);
+    console.log(`Add to cart: ${item.Title} (ID: ${item.ListingID})`);
     // Add actual cart logic here
   };
 
   return (
-    <Link to={`/food/${item.id}`} className="block hover:no-underline group">
+    <Link to={`/food/${item.ListingID}`} className="block hover:no-underline group">
       <Card className="h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-focus-within:shadow-xl focus-within:ring-2 focus-within:ring-highlight focus-within:ring-offset-2 border border-pale-mint group-hover:border-highlight pt-0">
         {" "}
         <div className="aspect-w-4 aspect-h-3 w-full">
           <img
             src={
-              item.image && item.image !== "imagepath"
-                ? item.image
+              item.ImagePath && item.ImagePath !== "imagepath"
+                ? item.ImagePath
                 : placeholderImage
             }
             alt={item.Title}
@@ -66,7 +66,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
                 className="w-full bg-brand-green text-lg text-pale-mint hover:bg-brand-green/90 mb-1 cursor-pointer"
                 onClick={handleAddToCartClick}
               >
-                Add to Cart
+                Order
               </Button>
             )}
           </div>

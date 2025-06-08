@@ -5,11 +5,13 @@ import type { FoodItem, FoodItemFormData } from "@/lib/types/FoodItem";
 
 interface FoodState {
   myListings: FoodItem[];
+  allListings: FoodItem[];
   selectedItem: FoodItem | null;
   isLoading: boolean;
   error: string | null;
   fetchMyListings: (token: string) => Promise<void>;
   fetchListingById: (token: string, listingId: string) => Promise<void>;
+  fetchAllListings: (token: string) => Promise<void>;
   createListing: (
     token: string,
     formData: Partial<FoodItemFormData>
@@ -40,6 +42,7 @@ const buildFoodItemFormData = (data: Partial<FoodItemFormData>): FormData => {
 
 export const useFoodStore = create<FoodState>((set) => ({
   myListings: [],
+  allListings: [],
   selectedItem: null,
   isLoading: false,
   error: null,
@@ -94,12 +97,11 @@ export const useFoodStore = create<FoodState>((set) => ({
         const apiItemData = response.data.data;
 
         // --- THIS IS THE KEY MAPPING LOGIC ---
-        // We create a clean FoodItem object for our frontend,
-        // handling type conversions like parsing the price string to a number.
         const foodItem: FoodItem = {
-          ...apiItemData, // Spread all fields from the API response
-          Price: parseFloat(apiItemData.Price) || 0, // Convert string price to number
-          originalPrice: parseFloat(apiItemData.originalPrice) || 0, // Convert string to number
+          ...apiItemData, 
+          Price: parseFloat(apiItemData.Price) || 0,
+          originalPrice: parseFloat(apiItemData.originalPrice) || 0,
+          currentPrice: apiItemData.currentPrice || 0,
         };
 
         set({ selectedItem: foodItem, isLoading: false });
@@ -112,6 +114,47 @@ export const useFoodStore = create<FoodState>((set) => ({
       const message =
         error.response?.data?.message || "Could not load this food item.";
       console.error("Fetch by ID error:", error);
+      toast.error(message);
+      set({ error: message, isLoading: false });
+    }
+  },
+
+  fetchAllListings: async (token) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(
+        "http://localhost:4000/api/food-listings/",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const listings: FoodItem[] = response.data.data.map((item: any) => ({
+        ListingID: item.listing.ListingId, 
+        Title: item.listing.title,
+        Description: item.listing.description,
+        FoodType: item.listing.foodType,
+        Quantity: item.listing.quantity,
+        DietaryInfo: item.listing.dietaryInfo,
+        CookedDate: item.listing.cookedDate,
+        IsDonation: item.listing.isDonation,
+        Price: parseFloat(item.listing.price) || 0,
+        ListingStatus: item.listing.listingStatus,
+        ImagePath: item.listing.imagePath,
+        CreatedAt: item.listing.createdAt,
+        PickupWindowStart: item.listing.pickupWindowStart,
+        PickupWindowEnd: item.listing.pickupWindowEnd,
+        PickupLocation: item.listing.pickupLocation,
+        originalPrice: parseFloat(item.listing.originalPrice) || undefined,
+        currentPrice: item.listing.currentPrice,
+        discountApplied: item.listing.discountApplied,
+        donor: item.donorSeller,
+      }));
+
+      set({ allListings: listings, isLoading: false });
+    } catch (error) {
+      const message = "Failed to fetch available food items.";
+      console.error(message, error);
       toast.error(message);
       set({ error: message, isLoading: false });
     }
