@@ -1,4 +1,5 @@
 export interface FoodItem {
+    ListingID: number;
     Title: string;
     Description: string;
     FoodType: string;
@@ -10,13 +11,23 @@ export interface FoodItem {
     Price: number;
     Quantity: string;
     DietaryInfo: string;
-    image: string;
-    id: string;
-
-    imageFile?: File | null;
+    ImagePath?: string | null;
     isOrdered: boolean;
+    ListingStatus: "ACTIVE" | "ORDERED" | "COMPLETED" | "EXPIRED";
+    CreatedAt: string;
 }
 
-export type FoodItemFormData = Omit<FoodItem, "id" | "isOrdered" | "image"> & {
+export interface FoodItemFormData {
+  Title: string;
+  Description: string;
+  FoodType: string;
+  CookedDate: string;
+  PickupWindowStart: string;
+  PickupWindowEnd: string;
+  PickupLocation: string;
+  IsDonation: boolean;
+  Price: number | string;
+  Quantity: string;
+  DietaryInfo: string;
   imageFile?: File | null;
-};
+}
