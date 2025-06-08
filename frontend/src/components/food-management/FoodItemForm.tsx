@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { toast } from "react-toastify";
 
 interface FoodItemFormProps {
   initialData?: FoodItem | null;
-  onSubmit: (formData: FoodItemFormData) => void;
+  onSubmit: (formData: Partial<FoodItemFormData>) => void;
   onCancel: () => void;
   isSaving?: boolean;
 }
@@ -33,12 +34,18 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  const isEditMode = !!initialData;
+
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  const minDateTime = now.toISOString().slice(0, 16);
+
   useEffect(() => {
     if (initialData) {
-      setTitle(initialData.Title);
-      setDescription(initialData.Description);
-      setQuantity(initialData.Quantity);
-      setFoodType(initialData.FoodType || ""); 
+      setTitle(initialData.Title || "");
+      setDescription(initialData.Description || "");
+      setQuantity(initialData.Quantity || "");
+      setFoodType(initialData.FoodType || "");
       setCookedDate(
         initialData.CookedDate
           ? new Date(initialData.CookedDate).toISOString().slice(0, 16)
@@ -54,12 +61,12 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
           ? new Date(initialData.PickupWindowEnd).toISOString().slice(0, 16)
           : ""
       );
-      setPickupLocation(initialData.PickupLocation);
-      setIsDonation(initialData.IsDonation);
+      setPickupLocation(initialData.PickupLocation || "");
+      setIsDonation(initialData.IsDonation || false);
       setPrice(initialData.IsDonation ? "" : initialData.Price);
       setDietaryInfo(initialData.DietaryInfo || "");
       setImageFile(null);
-      setImagePreview(initialData.image || null);
+      setImagePreview(initialData.ImagePath || null);
     } else {
       setTitle("");
       setDescription("");
@@ -84,25 +91,41 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
       setImagePreview(URL.createObjectURL(file));
     } else {
       setImageFile(null);
-      setImagePreview(initialData?.image || null);
+      setImagePreview(initialData?.ImagePath || null);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const formData: FoodItemFormData = {
+    let formData: Partial<FoodItemFormData> = {
       Title: title,
       Description: description,
       Quantity: quantity,
-      FoodType: foodType,
-      CookedDate: new Date(cookedDate).toISOString(),
-      PickupWindowStart: new Date(pickupStart).toISOString(),
-      PickupWindowEnd: new Date(pickupEnd).toISOString(),
-      PickupLocation: pickupLocation,
-      IsDonation: isDonation,
       Price: isDonation ? 0 : Number(price),
       DietaryInfo: dietaryInfo,
       imageFile: imageFile || undefined,
+    };
+
+    if (!isEditMode) {
+      if (
+        !foodType ||
+        !cookedDate ||
+        !pickupStart ||
+        !pickupEnd ||
+        !pickupLocation
+      ) {
+        toast.error("Please fill out all required fields.");
+        return;
+      }
+      formData = {
+        ...formData,
+        FoodType: foodType,
+        CookedDate: new Date(cookedDate + "Z").toISOString(),
+        PickupWindowStart: new Date(pickupStart + "Z").toISOString(),
+        PickupWindowEnd: new Date(pickupEnd + "Z").toISOString(),
+        PickupLocation: pickupLocation,
+        IsDonation: isDonation,
+      };
     };
     onSubmit(formData);
   };
@@ -113,9 +136,7 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
       className="space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto p-1"
     >
       <div>
-        <Label htmlFor="title" className="text-brand-green font-medium">
-          Title
-        </Label>
+        <Label htmlFor="title">Title</Label>
         <Input
           id="title"
           value={title}
@@ -124,9 +145,7 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
         />
       </div>
       <div>
-        <Label htmlFor="description" className="text-brand-green font-medium">
-          Description
-        </Label>
+        <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
           value={description}
@@ -134,42 +153,43 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
           required
         />
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="quantity" className="text-brand-green font-medium">
-            Serving Quantity (e.g., "Serves 2-3")
-          </Label>
-          <Input
-            id="quantity"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="foodType" className="text-brand-green font-medium">
-            Food Type (e.g., Italian, Bakery)
-          </Label>
-          <Input
-            id="foodType"
-            value={foodType}
-            onChange={(e) => setFoodType(e.target.value)}
-            required
-          />
-        </div>
+      <div>
+        <Label htmlFor="quantity">Serving Quantity</Label>
+        <Input
+          id="quantity"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="dietaryInfo">Dietary Info</Label>
+        <Input
+          id="dietaryInfo"
+          value={dietaryInfo}
+          onChange={(e) => setDietaryInfo(e.target.value)}
+        />
       </div>
 
+      {/* --- Fields ONLY visible when ADDING a new item --- */}
+      {!isEditMode && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="foodType">Food Type</Label>
+              <Input
+                id="foodType"
+                value={foodType}
+                onChange={(e) => setFoodType(e.target.value)}
+                required
+              />
       <div>
-        <Label htmlFor="image" className="text-brand-green font-medium">
-          Food Image
-        </Label>
+        <Label htmlFor="image">Food Image (Optional for update)</Label>
         <Input
           id="image"
           type="file"
           accept="image/*"
           onChange={handleImageChange}
-          className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pale-mint file:text-brand-green hover:file:bg-brand-green/20"
         />
         {imagePreview && (
           <img
@@ -179,99 +199,77 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
           />
         )}
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="cookedDate" className="text-brand-green font-medium">
-            Cooked Date & Time
-          </Label>
-          <Input
-            id="cookedDate"
-            type="datetime-local"
-            value={cookedDate}
-            onChange={(e) => setCookedDate(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="pickupStart" className="text-brand-green font-medium">
-            Pickup Window Start
-          </Label>
-          <Input
-            id="pickupStart"
-            type="datetime-local"
-            value={pickupStart}
-            onChange={(e) => setPickupStart(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="pickupEnd" className="text-brand-green font-medium">
-            Pickup Window End
-          </Label>
-          <Input
-            id="pickupEnd"
-            type="datetime-local"
-            value={pickupEnd}
-            onChange={(e) => setPickupEnd(e.target.value)}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label
-          htmlFor="pickupLocation"
-          className="text-brand-green font-medium"
-        >
-          Pickup Location
-        </Label>
-        <Input
-          id="pickupLocation"
-          value={pickupLocation}
-          onChange={(e) => setPickupLocation(e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-        <div className="flex items-center space-x-2 pt-4">
-          <Checkbox
-            id="isDonation"
-            checked={isDonation}
-            onCheckedChange={(checked) => setIsDonation(Boolean(checked))}
-          />
-          <Label htmlFor="isDonation" className="text-brand-green font-medium">
-            This is a Donation
-          </Label>
-        </div>
-        {!isDonation && (
-          <div>
-            <Label htmlFor="price" className="text-brand-green font-medium">
-              Price (BDT)
-            </Label>
-            <Input
-              id="price"
-              type="number"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required={!isDonation}
-            />
+            </div>
+            <div>
+              <Label htmlFor="pickupLocation">Pickup Location</Label>
+              <Input
+                id="pickupLocation"
+                value={pickupLocation}
+                onChange={(e) => setPickupLocation(e.target.value)}
+                required
+              />
+            </div>
           </div>
-        )}
-      </div>
 
-      <div>
-        <Label htmlFor="dietaryInfo" className="text-brand-green font-medium">
-          Dietary Info (e.g., Contains nuts, Vegan)
-        </Label>
-        <Input
-          id="dietaryInfo"
-          value={dietaryInfo}
-          onChange={(e) => setDietaryInfo(e.target.value)}
-        />
-      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="cookedDate">Cooked Date & Time</Label>
+              <Input
+                id="cookedDate"
+                type="datetime-local"
+                value={cookedDate}
+                onChange={(e) => setCookedDate(e.target.value)}
+                required
+                max={minDateTime}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pickupStart">Pickup Window Start</Label>
+              <Input
+                id="pickupStart"
+                type="datetime-local"
+                value={pickupStart}
+                onChange={(e) => setPickupStart(e.target.value)}
+                required
+                min={cookedDate || minDateTime}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pickupEnd">Pickup Window End</Label>
+              <Input
+                id="pickupEnd"
+                type="datetime-local"
+                value={pickupEnd}
+                onChange={(e) => setPickupEnd(e.target.value)}
+                required
+                min={pickupStart || minDateTime}
+              />
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 pt-4">
+            <Checkbox
+              id="isDonation"
+              checked={isDonation}
+              onCheckedChange={(checked) => setIsDonation(Boolean(checked))}
+            />
+            <Label htmlFor="isDonation">This is a Donation</Label>
+          </div>
+        </>
+      )}
+
+      {!isDonation && (
+        <div>
+          <Label htmlFor="price">Price (BDT)</Label>
+          <Input
+            id="price"
+            type="number"
+            min="0"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required={!isDonation}
+          />
+        </div>
+      )}
 
       <div className="flex justify-end space-x-3 pt-4">
         <Button
@@ -288,10 +286,10 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
           disabled={isSaving}
         >
           {isSaving
-            ? initialData
+            ? isEditMode
               ? "Saving..."
               : "Adding..."
-            : initialData
+            : isEditMode
             ? "Save Changes"
             : "Add Item"}
         </Button>
