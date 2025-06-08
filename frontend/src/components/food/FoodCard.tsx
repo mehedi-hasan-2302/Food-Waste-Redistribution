@@ -40,7 +40,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
           {" "}
           {/* Reduced padding & space */}
           {/* Title */}
-          <h3 className="font-serif text-lg text-dark-text leading-tight line-clamp-2 group-hover:text-highlight transition-colors mt-1 w-full">
+          <h3 className="font-serif text-xl font-semibold text-dark-text leading-tight line-clamp-2 group-hover:text-highlight transition-colors mt-1 w-full">
             {item.Title}
           </h3>
           {/* Price - Plain text, larger */}
