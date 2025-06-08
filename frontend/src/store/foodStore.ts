@@ -5,9 +5,11 @@ import type { FoodItem, FoodItemFormData } from "@/lib/types/FoodItem";
 
 interface FoodState {
   myListings: FoodItem[];
+  selectedItem: FoodItem | null;
   isLoading: boolean;
   error: string | null;
   fetchMyListings: (token: string) => Promise<void>;
+  fetchListingById: (token: string, listingId: string) => Promise<void>;
   createListing: (
     token: string,
     formData: Partial<FoodItemFormData>
@@ -17,6 +19,7 @@ interface FoodState {
     listingId: string,
     formData: FoodItemFormData
   ) => Promise<FoodItem | null>;
+  clearSelectedItem: () => void;
   deleteListing: (token: string, listingId: string) => Promise<boolean>;
 }
 
@@ -37,6 +40,7 @@ const buildFoodItemFormData = (data: Partial<FoodItemFormData>): FormData => {
 
 export const useFoodStore = create<FoodState>((set) => ({
   myListings: [],
+  selectedItem: null,
   isLoading: false,
   error: null,
 
@@ -73,6 +77,42 @@ export const useFoodStore = create<FoodState>((set) => ({
     } catch (error: any) {
       const message = "Failed to fetch your food items.";
       toast.error(error.message);
+      set({ error: message, isLoading: false });
+    }
+  },
+
+  fetchListingById: async (token, listingId) => {
+    set({ isLoading: true, error: null, selectedItem: null });
+    try {
+      const response = await axios.get(
+        `http://localhost:4000/api/food-listings/${listingId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data && response.data.status === "success") {
+        // The API returns the item object directly in response.data.data
+        const apiItemData = response.data.data;
+
+        // --- THIS IS THE KEY MAPPING LOGIC ---
+        // We create a clean FoodItem object for our frontend,
+        // handling type conversions like parsing the price string to a number.
+        const foodItem: FoodItem = {
+          ...apiItemData, // Spread all fields from the API response
+          Price: parseFloat(apiItemData.Price) || 0, // Convert string price to number
+          originalPrice: parseFloat(apiItemData.originalPrice) || 0, // Convert string to number
+        };
+
+        set({ selectedItem: foodItem, isLoading: false });
+      } else {
+        throw new Error(
+          response.data.message || "Failed to fetch item details."
+        );
+      }
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Could not load this food item.";
+      console.error("Fetch by ID error:", error);
+      toast.error(message);
       set({ error: message, isLoading: false });
     }
   },
@@ -157,6 +197,8 @@ export const useFoodStore = create<FoodState>((set) => ({
       return null;
     }
   },
+
+  clearSelectedItem: () => set({ selectedItem: null }),
 
   deleteListing: async (token, listingId) => {
     set({ isLoading: true });

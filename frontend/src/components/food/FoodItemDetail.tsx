@@ -22,9 +22,9 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
             <div className="aspect-w-4 aspect-h-3 w-full md:aspect-w-auto md:aspect-h-auto md:h-full">
                 <img
                 src={
-                    item.image === "imagepath" || !item.image
+                    item.ImagePath === "imagepath" || !item.ImagePath
                     ? placeholderImage
-                    : item.image
+                    : item.ImagePath
                 }
                 alt={item.Title}
                 className="w-full h-full object-cover rounded-lg"
@@ -62,7 +62,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
                     size={"lg"}
                     className="bg-brand-green text-white hover:bg-brand-green/90 w-full py-2.5 text-base cursor-pointer"
                 >
-                    Add to Cart
+                    Order Now
                 </Button>
                 ) : (
                 <Button
@@ -76,7 +76,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
 
             {/* Quantity Badge */}
             <div className="inline-block px-3 py-1.5 rounded-md text-sm sm:text-lg font-medium border border-highlight text-highlight w-fit">
-                {item.Quantity}
+                {`Serves ${item.Quantity}`}
             </div>
 
             {/* Textual Details */}
