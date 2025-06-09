@@ -13,6 +13,7 @@ export class Buyer {
   ProfileID!: number
 
   @OneToOne(() => User, u => u.buyer, { onDelete: 'CASCADE' })
+
   @JoinColumn({ name: 'UserID' })
   user!: User
 

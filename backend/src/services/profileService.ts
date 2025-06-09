@@ -179,7 +179,17 @@ async function createBuyerProfile(user: User, data: BuyerProfileInput) {
     DefaultDeliveryAddress: data.DefaultDeliveryAddress
   })
   
-  return await buyerRepo.save(profile)
+  const savedProfile = await buyerRepo.save(profile)
+  const verifyProfile = await buyerRepo.findOne({
+    where: { ProfileID: savedProfile.ProfileID },
+    relations: ['user']
+  })
+  
+  if (!verifyProfile?.user) {
+    throw new Error('Failed to create buyer profile with user relationship')
+  }
+  
+  return savedProfile
 }
 
 
@@ -252,9 +262,10 @@ export async function getProfile(userId: number) {
       Role: user.Role,
       RegistrationDate: user.RegistrationDate,
       IsEmailVerified: user.IsEmailVerified,
-      AccountStatus: user.AccountStatus
+      AccountStatus: user.AccountStatus,
+      isProfileComplete: user.isProfileComplete
     },
-    profile: cleanProfileResponse(profile),
+    profile: profile,
     profileCompleted: !!profile
   }
 }
