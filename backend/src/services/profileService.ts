@@ -104,30 +104,35 @@ export async function completeProfile(
   switch (user.Role) {
     case UserRole.DONOR_SELLER:
       createdProfile = await createDonorSellerProfile(user, profileData as DonorSellerProfileInput)
+      user.donorSeller = createdProfile 
       user.isProfileComplete = true
       await userRepo.save(user)
       break
     
     case UserRole.CHARITY_ORG:
       createdProfile = await createCharityOrgProfile(user, profileData as CharityOrgProfileInput)
+      user.charityOrganization = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
       break
 
     case UserRole.BUYER:
       createdProfile = await createBuyerProfile(user, profileData as BuyerProfileInput)
+      user.buyer = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
       break
     
     case UserRole.INDEP_DELIVERY:
       createdProfile = await createIndependentDeliveryProfile(user, profileData as IndependentDeliveryProfileInput)
+      user.independentDelivery = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
       break
 
     case UserRole.ORG_VOLUNTEER:
       createdProfile = await createOrganizationVolunteerProfile(user, profileData as OrganizationVolunteerProfileInput)
+      user.organizationVolunteer = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
       break
@@ -265,7 +270,7 @@ export async function getProfile(userId: number) {
       AccountStatus: user.AccountStatus,
       isProfileComplete: user.isProfileComplete
     },
-    profile: profile,
+    profile: cleanProfileResponse(profile),
     profileCompleted: !!profile
   }
 }
