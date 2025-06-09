@@ -15,6 +15,7 @@ import FoodDisplayPage from './Pages/primary/FoodDisplayPage.tsx';
 import FoodListPage from './Pages/primary/FoodListPage.tsx';
 import UserProfilePage from './Pages/primary/UserProfilePage.tsx';
 import FoodManagementPage from './Pages/primary/FoodManagementPage.tsx';
+import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 
 const router = createBrowserRouter([
   {
@@ -58,8 +59,15 @@ const router = createBrowserRouter([
         element: <UserProfilePage />,
       },
       {
-        path: "manage",  // Route for food management page
-        element: <FoodManagementPage />,
+        element: (
+          <ProtectedRoute allowedRoles={["DONOR_SELLER", "ADMIN"]} profileMustBeComplete={true} />
+        ),
+        children: [
+          {
+            path: "manage",
+            element: <FoodManagementPage />,
+          },
+        ],
       },
       {
         path: "*",
