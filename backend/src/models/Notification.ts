@@ -34,6 +34,9 @@ export class Notification {
   @Column({ nullable: true })
   ReferenceID?: number
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt!: Date
+
   @Column({ default: false })
   IsRead!: boolean
 }

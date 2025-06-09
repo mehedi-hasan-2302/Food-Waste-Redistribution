@@ -152,40 +152,6 @@ function isDeliveryNotification(type: NotificationType | string): boolean {
   return deliveryTypes.includes(type.toString())
 }
 
-function getNotificationTitle(type: NotificationType | string): string {
-  const titles: Record<string, string> = {
-    'NEW_DELIVERY_REQUEST': 'New Delivery Request',
-    'NEW_ORDER_RECEIVED': 'New Order',
-    'ORDER_CREATED': 'Order Confirmation',
-    'ORDER_CONFIRMED': 'Order Confirmed',
-    'ORDER_COMPLETED': 'Order Completed',
-    'PICKUP_CONFIRMED': 'Pickup Confirmed',
-    'ORDER_DELIVERED': 'Order Delivered',
-    'ORDER_CANCELLED': 'Order Cancelled',
-    'DONATION_CLAIMED': 'Donation Claimed',
-    'DELIVERY_UPDATE': 'Delivery Update',
-    'DELIVERY_FAILED': 'Delivery Issue'
-  }
-  return titles[type.toString()] || 'Notification'
-}
-
-function getNotificationChannel(type: NotificationType | string): string {
-  if (isDeliveryNotification(type)) return 'delivery_updates'
-  if (type.toString().includes('ORDER')) return 'order_updates'
-  if (type.toString().includes('DONATION')) return 'donation_updates'
-  return 'general'
-}
-
-async function getUnreadNotificationCount(userId: number): Promise<number> {
-  return await notificationRepo.count({
-    where: {
-      recipient: { UserID: userId },
-      IsRead: false
-    }
-  })
-}
-
-
 async function saveNotificationToDatabase(payload: NotificationPayload): Promise<Notification> {
   const recipient = await userRepo.findOne({
     where: { UserID: payload.recipientId }
@@ -237,3 +203,45 @@ async function saveNotificationToDatabase(payload: NotificationPayload): Promise
 
   return await notificationRepo.save(notification)
 }
+
+
+export async function getNotificationsForUser(
+  userId: number,
+  limit: number = 20,
+  offset: number = 0
+): Promise<Notification[]> {
+  return await notificationRepo.find({
+    where: { recipient: { UserID: userId } },
+    order: { createdAt: 'DESC' },
+    take: limit,
+    skip: offset
+  })
+} 
+
+
+export async function markNotificationAsRead(notificationId: number): Promise<Notification> {
+  const notification = await notificationRepo.findOneBy({ NotificationID: notificationId })
+  if (!notification) {
+    throw new Error(`Notification with ID ${notificationId} not found`)
+  }
+  notification.IsRead = true
+  return await notificationRepo.save(notification)
+}
+
+
+export async function markAllNotificationsAsRead(userId: number): Promise<void> {
+  const notifications = await notificationRepo.find({
+    where: {
+      recipient: { UserID: userId },
+      IsRead: false
+    }
+  })
+  if (notifications.length === 0) return
+  for (const notification of notifications) {
+    notification.IsRead = true
+    await notificationRepo.save(notification)
+  }
+}
+
+
+

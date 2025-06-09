@@ -6,6 +6,7 @@ import profileRoutes from './routes/profileRoutes'
 import foodListingRoutes from './routes/foodListingRoutes'
 import orderRoutes from './routes/orderRoutes'
 import donationRoutes from './routes/donationRoutes'
+import notificationRoutes from './routes/notificationRoutes'
 import adminRoutes from './routes/adminRoutes'
 
 export async function createApp(): Promise<Express> {
@@ -19,6 +20,8 @@ export async function createApp(): Promise<Express> {
   app.use('/api/food-listings', foodListingRoutes)
   app.use('/api/orders', orderRoutes)
   app.use('/api/donations', donationRoutes)
+  app.use('/api/notifications', notificationRoutes) 
+
   
   app.use('/api/admin', adminRoutes) 
 
