@@ -47,6 +47,10 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       isAuthenticated: () => !!get().token && !!get().user,
       loginSuccess: (userDataFromApi: UserPrimaryData, token: string) => {
+        console.log(
+          "[authStore]: Data received from LOGIN API:",
+          userDataFromApi
+        );
         const appUser: AppUser = {
           id: String(userDataFromApi.UserID),
           fullName: userDataFromApi.Username,

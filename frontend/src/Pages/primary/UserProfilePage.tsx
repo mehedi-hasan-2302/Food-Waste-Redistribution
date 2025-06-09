@@ -25,23 +25,26 @@ const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated || !authUser) {
+    if (isAuthenticated() && authUser) {
+      if(authUser.isProfileComplete) {
+        fetchFullProfile(token!);
+      } else {
+        initializeProfile(authUser);
+      }
+
+    } else {
+      toast.error("You must be logged in to view your profile.");
       navigate("/login");
       return;
     }
 
-    if (authUser.isProfileComplete) {
-      fetchFullProfile(token!);
-    } else {
-      initializeProfile(authUser);
-    }
   }, [
     authUser,
     isAuthenticated,
-    navigate,
     token,
-    fetchFullProfile,
     initializeProfile,
+    fetchFullProfile,
+    navigate,
   ]);
 
   const handleProfileUpdate = async (
@@ -53,12 +56,63 @@ const UserProfilePage: React.FC = () => {
       return;
     }
 
-    const payload = submittedData;
+    const formData = new FormData();
+    let requestBodyJson: any = {};
+    let hasFiles = false;
 
-    const headers = {
+    switch (role) {
+      case "BUYER":
+        requestBodyJson = {
+          DefaultDeliveryAddress: submittedData.DefaultDeliveryAddress,
+        };
+        break;
+      case "DONOR_SELLER":
+        requestBodyJson = { BusinessName: submittedData.BusinessName };
+        break;
+      case "CHARITY_ORG": {
+        hasFiles = !!submittedData.govRegDocument;
+        if (submittedData.govRegDocument) {
+          formData.append("govRegDocumentFile", submittedData.govRegDocument);
+        }
+        requestBodyJson = {
+          OrganizationName: submittedData.OrganizationName,
+          AddressLine1: submittedData.AddressLine1,
+        };
+        break;
+      }
+      case "INDEP_DELIVERY": {
+        hasFiles = !!submittedData.selfieImage || !!submittedData.nidImage;
+        if (submittedData.selfieImage) {
+          formData.append("selfieImageFile", submittedData.selfieImage);
+        }
+        if (submittedData.nidImage) {
+          formData.append("nidImageFile", submittedData.nidImage);
+        }
+        requestBodyJson = {
+          FullName: profile!.fullName, // Get FullName from the existing profile
+          OperatingAreas: submittedData.OperatingAreas,
+          SelfiePath: submittedData.SelfiePath, // Assuming URL string
+          NIDPath: submittedData.NIDPath, // Assuming URL string
+        };
+        break;
+      }
+      default:
+        toast.error(`Update not configured for role: ${role}`);
+        return;
+    }
+
+    let payload: FormData | object;
+    const headers: { [key: string]: string } = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
     };
+
+    if (hasFiles) {
+      formData.append("data", JSON.stringify(requestBodyJson));
+      payload = formData;
+    } else {
+      payload = requestBodyJson;
+      headers["Content-Type"] = "application/json";
+    }
 
     const wasSuccessful = await completeProfile(token, payload, headers);
 

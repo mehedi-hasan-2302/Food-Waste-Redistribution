@@ -51,13 +51,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
 
   const getRoleSpecifics = () => {
 
+    const isEditing = !profile.isProfileComplete;
+
     switch (profile.role) {
       case "BUYER":
         return {
           icon: (
             <ShoppingBag className="h-7 w-7 md:h-8 md:w-8 text-highlight" />
           ),
-          title: !profile.isProfileComplete
+          title: isEditing
             ? "Complete Your Buyer Profile"
             : "Buyer Information",
           details: (
@@ -69,7 +71,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
           icon: (
             <ShieldCheck className="h-7 w-7 md:h-8 md:w-8 text-highlight" />
           ),
-          title: !profile.isProfileComplete
+          title: isEditing
             ? "Complete Charity Profile"
             : "Charity Information",
           details: (
@@ -83,7 +85,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
           icon: (
             <HeartHandshake className="h-7 w-7 md:h-8 md:w-8 text-highlight" />
           ),
-          title: !profile.isProfileComplete
+          title: isEditing
             ? "Complete Volunteer Profile"
             : "Volunteer Information",
           details: (
@@ -95,7 +97,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
       case "DONOR_SELLER":
         return {
           icon: <Briefcase className="h-7 w-7 md:h-8 md:w-8 text-highlight" />,
-          title: !profile.isProfileComplete
+          title: isEditing
             ? "Complete Business Profile"
             : "Business Information",
           details: (

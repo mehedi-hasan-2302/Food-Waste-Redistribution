@@ -59,10 +59,13 @@ export const useProfileStore = create<ProfileState>((set) => ({
       console.log("Full Profile Data:", response.data.data);
       if (response.data && response.data.status === "success") {
         console.log("Full Profile Data:", response.data.data);
-        const { user, profile, apiProfile, profileCompleted } = response.data.data;
-        let frontendOperatingAreas: string[] = [];
-        if (apiProfile && apiProfile.OperatingAreas) {
-          frontendOperatingAreas = Object.values(apiProfile.OperatingAreas);
+        const { user, profile: apiProfile, profileCompleted } = response.data.data;
+        const finalProfileData = {
+          ...apiProfile
+        }
+
+        if(apiProfile && apiProfile.OperatingAreas) {
+          finalProfileData.OperatingAreas = Object.values(apiProfile.OperatingAreas);
         }
         set({
           profile: {
@@ -72,8 +75,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
             phoneNumber: user.PhoneNumber,
             role: user.Role,
             isProfileComplete: profileCompleted,
-            ...profile,
-            OperatingAreas: frontendOperatingAreas,
+            ...finalProfileData,
           },
           isLoading: false,
         });
@@ -101,13 +103,15 @@ export const useProfileStore = create<ProfileState>((set) => ({
       );
 
       if (response.data && response.data.status === "success") {
+        console.log("Profile Update Response:", response.data);
         toast.success(response.data.message || "Profile updated successfully!");
         const { user: updatedUser, profile: updatedProfileDetails } =
           response.data.data;
-        console.log(response.data.data);
-        let frontendOperatingAreas: string[] = [];
+        const finalProfileData = {
+          ...updatedProfileDetails,
+        }
         if (updatedProfileDetails && updatedProfileDetails.OperatingAreas) {
-          frontendOperatingAreas = Object.values(
+          finalProfileData.OperatingAreas = Object.values(
             updatedProfileDetails.OperatingAreas
           );
         }
@@ -120,8 +124,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
             phoneNumber: updatedUser.PhoneNumber,
             role: updatedUser.Role,
             isProfileComplete: updatedUser.isProfileComplete,
-            ...updatedProfileDetails,
-            OperatingAreas: frontendOperatingAreas,
+            ...finalProfileData,
           },
           isLoading: false,
         });
