@@ -32,7 +32,7 @@ const CharityOrgProfileDetails: React.FC<CharityOrgProfileDetailsProps> = ({
     setOrgName(profile?.OrganizationName || "");
     setOrgAddress(profile?.AddressLine1 || "");
     setDocPath(profile?.GovRegistrationDocPath || "");
-  }, [profile]);
+  }, [profile?.OrganizationName, profile?.AddressLine1, profile?.GovRegistrationDocPath]);  
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

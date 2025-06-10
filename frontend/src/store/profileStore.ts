@@ -2,21 +2,19 @@ import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
 import type { UserProfileData } from "@/components/profile/UserProfile";
-import { useAuthStore, type AppUser } from "./authStore";
+import { type AppUser } from "./authStore";
 
 type ApiPayload = FormData | { [key: string]: any };
-type ApiHeaders = { [key: string]: string };
 
 interface ProfileState {
   profile: UserProfileData | null;
   isLoading: boolean;
   error: string | null;
   initializeProfile: (authUser: AppUser) => void;
-  fetchFullProfile: (token: string) => Promise<void>;
+  fetchFullProfile: (token: string, ) => Promise<void>;
   completeProfile: (
     token: string,
     payload: ApiPayload,
-    headers: ApiHeaders
   ) => Promise<boolean>;
   clearProfile: () => void;
 }
@@ -59,23 +57,29 @@ export const useProfileStore = create<ProfileState>((set) => ({
       console.log("Full Profile Data:", response.data.data);
       if (response.data && response.data.status === "success") {
         console.log("Full Profile Data:", response.data.data);
-        const { user, profile: apiProfile, profileCompleted } = response.data.data;
+        const {
+          user,
+          profile: roleSpecificDetails,
+          profileCompleted,
+        } = response.data.data;
         const finalProfileData = {
-          ...apiProfile
-        }
+          ...roleSpecificDetails,
+        };
 
-        if(apiProfile && apiProfile.OperatingAreas) {
-          finalProfileData.OperatingAreas = Object.values(apiProfile.OperatingAreas);
+        if (roleSpecificDetails && roleSpecificDetails.OperatingAreas) {
+          finalProfileData.OperatingAreas = Object.values(
+            roleSpecificDetails.OperatingAreas
+          );
         }
         set({
           profile: {
+            ...finalProfileData,
             id: String(user.UserID),
             fullName: user.Username,
             email: user.Email,
             phoneNumber: user.PhoneNumber,
             role: user.Role,
             isProfileComplete: profileCompleted,
-            ...finalProfileData,
           },
           isLoading: false,
         });
@@ -91,25 +95,30 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
   },
 
-  completeProfile: async (token, payload, headers) => {
+  completeProfile: async (token, payload) => {
     set({ isLoading: true, error: null });
     try {
+      // Define headers object here
+      const headers: { [key: string]: string } = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      if (!(payload instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+      }
+
       const response = await axios.post(
         "http://localhost:4000/api/profile/complete",
         payload,
-        {
-          headers,
-        }
+        { headers }
       );
 
       if (response.data && response.data.status === "success") {
-        console.log("Profile Update Response:", response.data);
         toast.success(response.data.message || "Profile updated successfully!");
         const { user: updatedUser, profile: updatedProfileDetails } =
           response.data.data;
-        const finalProfileData = {
-          ...updatedProfileDetails,
-        }
+
+        const finalProfileData = { ...updatedProfileDetails };
         if (updatedProfileDetails && updatedProfileDetails.OperatingAreas) {
           finalProfileData.OperatingAreas = Object.values(
             updatedProfileDetails.OperatingAreas
@@ -118,20 +127,17 @@ export const useProfileStore = create<ProfileState>((set) => ({
 
         set({
           profile: {
+            ...finalProfileData,
             id: String(updatedUser.UserID),
             fullName: updatedUser.Username,
             email: updatedUser.Email,
             phoneNumber: updatedUser.PhoneNumber,
             role: updatedUser.Role,
             isProfileComplete: updatedUser.isProfileComplete,
-            ...finalProfileData,
           },
           isLoading: false,
         });
 
-        useAuthStore
-          .getState()
-          .updateProfileCompletionStatus(updatedUser.isProfileComplete);
         return true;
       } else {
         throw new Error(response.data.message || "Update failed.");

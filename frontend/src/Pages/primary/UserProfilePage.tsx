@@ -8,34 +8,35 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 
 const UserProfilePage: React.FC = () => {
-  const {
-    user: authUser,
-    token,
-    isAuthenticated,
-    updateProfileCompletionStatus,
-  } = useAuthStore();
-  const {
-    profile,
-    isLoading,
-    initializeProfile,
-    fetchFullProfile,
-    completeProfile,
-  } = useProfileStore();
+  const authUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const token = useAuthStore((state) => state.token);
+  const updateProfileCompletionStatus = useAuthStore(
+    (state) => state.updateProfileCompletionStatus
+  );
+
+
+  const profile = useProfileStore((state) => state.profile);
+  const isLoading = useProfileStore((state) => state.isLoading);
+  const initializeProfile = useProfileStore(
+    (state) => state.initializeProfile
+  );
+  const fetchFullProfile = useProfileStore((state) => state.fetchFullProfile);
+  const completeProfile = useProfileStore((state) => state.completeProfile);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated() && authUser) {
-      if(authUser.isProfileComplete) {
-        fetchFullProfile(token!);
-      } else {
-        initializeProfile(authUser);
-      }
-
-    } else {
-      toast.error("You must be logged in to view your profile.");
+    if (!isAuthenticated() || !authUser) {
       navigate("/login");
       return;
+
+    } 
+    if (authUser.isProfileComplete) {
+      console.log("Profile already complete, no need to fetch full profile.");
+      fetchFullProfile(token!);
+    } else {
+      initializeProfile(authUser);
     }
 
   }, [
@@ -55,66 +56,22 @@ const UserProfilePage: React.FC = () => {
       toast.error("You must be logged in to update your profile.");
       return;
     }
-
-    const formData = new FormData();
-    let requestBodyJson: any = {};
-    let hasFiles = false;
-
-    switch (role) {
-      case "BUYER":
-        requestBodyJson = {
-          DefaultDeliveryAddress: submittedData.DefaultDeliveryAddress,
-        };
-        break;
-      case "DONOR_SELLER":
-        requestBodyJson = { BusinessName: submittedData.BusinessName };
-        break;
-      case "CHARITY_ORG": {
-        hasFiles = !!submittedData.govRegDocument;
-        if (submittedData.govRegDocument) {
-          formData.append("govRegDocumentFile", submittedData.govRegDocument);
-        }
-        requestBodyJson = {
-          OrganizationName: submittedData.OrganizationName,
-          AddressLine1: submittedData.AddressLine1,
-        };
-        break;
-      }
-      case "INDEP_DELIVERY": {
-        hasFiles = !!submittedData.selfieImage || !!submittedData.nidImage;
-        if (submittedData.selfieImage) {
-          formData.append("selfieImageFile", submittedData.selfieImage);
-        }
-        if (submittedData.nidImage) {
-          formData.append("nidImageFile", submittedData.nidImage);
-        }
-        requestBodyJson = {
-          FullName: profile!.fullName, // Get FullName from the existing profile
-          OperatingAreas: submittedData.OperatingAreas,
-          SelfiePath: submittedData.SelfiePath, // Assuming URL string
-          NIDPath: submittedData.NIDPath, // Assuming URL string
-        };
-        break;
-      }
-      default:
-        toast.error(`Update not configured for role: ${role}`);
-        return;
+    
+    const currentProfile = useProfileStore.getState().profile;
+    if (!currentProfile) {
+      toast.error("Profile data not available. Please refresh.");
+      return;
     }
 
-    let payload: FormData | object;
-    const headers: { [key: string]: string } = {
-      Authorization: `Bearer ${token}`,
+    const payload = {
+      ...submittedData,
     };
 
-    if (hasFiles) {
-      formData.append("data", JSON.stringify(requestBodyJson));
-      payload = formData;
-    } else {
-      payload = requestBodyJson;
-      headers["Content-Type"] = "application/json";
+    if (role === "INDEP_DELIVERY") {
+      payload.FullName = currentProfile.fullName;
     }
 
-    const wasSuccessful = await completeProfile(token, payload, headers);
+    const wasSuccessful = await completeProfile(token, payload);
 
     if (wasSuccessful) {
       updateProfileCompletionStatus(true);

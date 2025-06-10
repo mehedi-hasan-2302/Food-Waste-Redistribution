@@ -31,7 +31,7 @@ const VolunteerProfileDetails: React.FC<VolunteerProfileDetailsProps> = ({
     setOperatingAreasInput(profile?.OperatingAreas?.join(", ") || "");
     setSelfiePath(profile?.SelfiePath || "");
     setNidPath(profile?.NIDPath || "");
-  }, [profile]);
+  }, [profile?.OperatingAreas, profile?.SelfiePath, profile?.NIDPath]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
