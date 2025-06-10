@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ExpiryCountdown from "@/components/food/ExpiryCountDown";
+import OrderModal from "@/components/OrderModal";
 
 interface FoodCardProps {
   item: FoodItem;
@@ -13,17 +14,11 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
     "https://placehold.co/400x300/D9E3DF/1A3F36?text=Food";
   const isItemExpired = +new Date(item.PickupWindowEnd) <= +new Date();
 
-  const handleAddToCartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    console.log(`Add to cart: ${item.Title} (ID: ${item.ListingID})`);
-    // Add actual cart logic here
-  };
-
   return (
-    <Link to={`/food/${item.ListingID}`} className="block hover:no-underline group">
+    <div className="block hover:no-underline group">
       <Card className="h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-focus-within:shadow-xl focus-within:ring-2 focus-within:ring-highlight focus-within:ring-offset-2 border border-pale-mint group-hover:border-highlight pt-0">
         {" "}
+        <Link to={`/food/${item.ListingID}`} className="w-full h-full">
         <div className="aspect-w-4 aspect-h-3 w-full">
           <img
             src={
@@ -35,11 +30,14 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
             className="w-full h-full object-cover"
           />
         </div>
+        </Link>
+        {/* Card Header - Title and Status Badge */}
         {/* Content Section - All elements centered */}
         <CardContent className="flex-grow flex flex-col items-center text-center p-3 space-y-1.5">
           {" "}
           {/* Reduced padding & space */}
           {/* Title */}
+          
           <h3 className="font-serif text-xl font-semibold text-dark-text leading-tight line-clamp-2 group-hover:text-highlight transition-colors mt-1 w-full">
             {item.Title}
           </h3>
@@ -61,13 +59,18 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
                 Unavailable
               </Button>
             ) : (
+              <OrderModal
+                listingId={item.ListingID}
+                listingTitle={item.Title}
+                listingPrice={item.Price}
+              >
               <Button
                 size="lg"
                 className="w-full bg-brand-green text-lg text-pale-mint hover:bg-brand-green/90 mb-1 cursor-pointer"
-                onClick={handleAddToCartClick}
               >
                 Order
               </Button>
+              </OrderModal>
             )}
           </div>
           {/* Expiry Countdown */}
@@ -80,7 +83,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
           )}
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 };
 

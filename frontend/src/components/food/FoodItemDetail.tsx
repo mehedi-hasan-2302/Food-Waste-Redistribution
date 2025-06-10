@@ -3,6 +3,7 @@ import DetailItem from "./DetailItem";
 import { Button } from "@/components/ui/button";
 import type { FoodItem } from "@/lib/types/FoodItem";
 import { formatCookedDate } from "@/lib/fooddataFormatter";
+import OrderModal from "@/components/OrderModal";
 
 interface FoodItemDetailProps {
     item: FoodItem;
@@ -58,12 +59,18 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
             {/* Add to Cart Button / Unavailable */}
             <div className="w-full sm:max-w-xs">
                 {!isItemExpired ? (
+                    <OrderModal
+                    listingId={item.ListingID}
+                    listingPrice={item.Price}
+                    listingTitle={item.Title}
+                  >
                 <Button
                     size={"lg"}
                     className="bg-brand-green text-white hover:bg-brand-green/90 w-full py-2.5 text-base cursor-pointer"
                 >
                     Order Now
                 </Button>
+                </OrderModal>
                 ) : (
                 <Button
                     className="bg-gray-300 text-gray-500 w-full cursor-not-allowed py-2.5 text-base"

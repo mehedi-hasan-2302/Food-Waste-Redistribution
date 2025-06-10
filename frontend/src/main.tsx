@@ -59,15 +59,8 @@ const router = createBrowserRouter([
         element: <UserProfilePage />,
       },
       {
-        element: (
-          <ProtectedRoute allowedRoles={["DONOR_SELLER", "ADMIN"]} profileMustBeComplete={true} />
-        ),
-        children: [
-          {
-            path: "manage",
-            element: <FoodManagementPage />,
-          },
-        ],
+        path: "manage",
+        element: <FoodManagementPage />,
       },
       {
         path: "*",
