@@ -12,6 +12,7 @@ import {
 } from '../utils/errors'
 import { generateUniqueCode } from '../utils/codeGenerator'
 import { sendRealTimeNotification, sendDeliveryNotification } from '../services/notificationService'
+import { DonorSeller } from '../models/DonorSeller'
 
 
 const userRepo = AppDataSource.getRepository(User)
@@ -188,7 +189,10 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       data: {
         orderId: savedOrder.OrderID,
         listingTitle: listing.Title,
-        buyerName: buyer.Username
+        foodPrice: listing.Price,
+        deliveryFee: deliveryFee,
+        finalPrice: finalPrice,
+        buyerName: listing.donor.Username
       }
     })
 
