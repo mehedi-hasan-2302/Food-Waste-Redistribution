@@ -51,13 +51,21 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({
           </Link>
         </DropdownMenuItem>
         {user?.role === "DONOR_SELLER" && (
-        <DropdownMenuItem asChild className="cursor-pointer">
-          <Link to="/manage">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Manage Food</span>
-          </Link>
-        </DropdownMenuItem>
-         )}
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/manage">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Manage Food</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {user?.role === "ADMIN" && (
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/admin">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={onLogout}
