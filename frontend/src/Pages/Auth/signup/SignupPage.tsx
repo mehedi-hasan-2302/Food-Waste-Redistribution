@@ -229,6 +229,9 @@ export default function SignupPage() {
       case "buyer":
         apiRoleValue = "BUYER";
         break;
+      case "org_volunteer":
+        apiRoleValue = "ORG_VOLUNTEER";
+        break;
       default:
         toast.error("Invalid role selected. Please try again.");
         setSignupError("Invalid role selected.");
