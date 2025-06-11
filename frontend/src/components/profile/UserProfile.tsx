@@ -12,13 +12,14 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import ProfileDetailItem from "./ProfileDetailItem";
+import OrgVolunteerProfileDetails from "./OrgVolunteerProfileDetails";
 
 export interface UserProfileData {
   id: string;
   fullName: string;
   phoneNumber: string;
   email: string;
-  role: "BUYER" | "CHARITY_ORG" | "INDEP_DELIVERY" | "DONOR_SELLER" | string;
+  role: "BUYER" | "CHARITY_ORG" | "INDEP_DELIVERY" | "DONOR_SELLER" | "ORG_VOLUNTEER" | string;
   isProfileComplete: boolean;
 
   DefaultDeliveryAddress?: string;
@@ -29,6 +30,10 @@ export interface UserProfileData {
   NIDPath?: string;
   OperatingAreas?: string[];
   BusinessName?: string;
+  CharityOrgID?: number;
+  charityOrg?: {
+    ProfileID: number;
+  };
 }
 
 interface UserProfileProps {
@@ -106,6 +111,18 @@ const UserProfile: React.FC<UserProfileProps> = ({ onProfileUpdate }) => {
             />
           ),
         };
+      case "ORG_VOLUNTEER":
+        return {
+          icon: <HeartHandshake className="h-7 w-7 md:h-8 md:w-8 text-highlight" />,
+          title: isEditing
+            ? "Complete Organization Volunteer Profile"
+            : "Organization Volunteer Information",
+          details: (
+            <OrgVolunteerProfileDetails
+              onSubmitProfile={handleRoleProfileSubmit}
+            />
+          ),
+        }
       default:
         return {
           icon: <UserCircle className="h-7 w-7 md:h-8 md:w-8 text-gray-400" />,

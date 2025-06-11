@@ -70,6 +70,10 @@ const UserProfilePage: React.FC = () => {
     if (role === "INDEP_DELIVERY") {
       payload.FullName = currentProfile.fullName;
     }
+    if(role === "ORG_VOLUNTEER") {
+      payload.VolunteerName = authUser?.fullName;
+      payload.VolunteerContactPhone = authUser?.phoneNumber;
+    }
 
     const wasSuccessful = await completeProfile(token, payload);
 
