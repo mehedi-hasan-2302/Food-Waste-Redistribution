@@ -77,10 +77,12 @@ export const useFoodStore = create<FoodState>((set) => ({
           item.listing.listingStatus === "COMPLETED",
       }));
       set({ myListings: listings, isLoading: false });
-    } catch (error: any) {
-      const message = "Failed to fetch your food items.";
-      toast.error(error.message);
-      set({ error: message, isLoading: false });
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to fetch your food items."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -110,12 +112,13 @@ export const useFoodStore = create<FoodState>((set) => ({
           response.data.message || "Failed to fetch item details."
         );
       }
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || "Could not load this food item.";
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Could not load this food item."
+        : "An unexpected error occurred.";
       console.error("Fetch by ID error:", error);
-      toast.error(message);
-      set({ error: message, isLoading: false });
+      toast.error(errorMessage);
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -182,9 +185,10 @@ export const useFoodStore = create<FoodState>((set) => ({
       }));
       toast.success("Food item created successfully!");
       return newListing;
-    } catch (error: any) {
-      // --- ERROR HANDLING ---
-      let errorMessage = "Failed to create food item. Please try again.";
+    } catch (error) {
+      let errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to create food item."
+        : "An unexpected error occurred.";
 
       if (axios.isAxiosError(error) && error.response) {
         console.error("API Validation Error Response:", error.response.data);
@@ -233,10 +237,12 @@ export const useFoodStore = create<FoodState>((set) => ({
       }));
       toast.success("Food item updated successfully!");
       return updatedListing;
-    } catch (error: any) {
-      const message = "Failed to update food item.";
-      toast.error(error.message);
-      set({ error: message, isLoading: false });
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to update food item."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ error: errorMessage, isLoading: false });
       return null;
     }
   },
@@ -260,10 +266,12 @@ export const useFoodStore = create<FoodState>((set) => ({
       }));
       toast.success("Food item deleted successfully.");
       return true;
-    } catch (error: any) {
-      const message = "Failed to delete food item.";
-      toast.error(error.message);
-      set({ error: message, isLoading: false });
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to delete food item."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ error: errorMessage, isLoading: false });
       return false;
     }
   },
