@@ -16,6 +16,7 @@ import FoodListPage from './Pages/primary/FoodListPage.tsx';
 import UserProfilePage from './Pages/primary/UserProfilePage.tsx';
 import FoodManagementPage from './Pages/primary/FoodManagementPage.tsx';
 import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
+import AdminPage from './Pages/primary/AdminPage.tsx';
 
 const router = createBrowserRouter([
   {
@@ -61,6 +62,10 @@ const router = createBrowserRouter([
       {
         path: "manage",
         element: <FoodManagementPage />,
+      },
+      {
+        path: "admin",
+        element: <AdminPage />,
       },
       {
         path: "*",
