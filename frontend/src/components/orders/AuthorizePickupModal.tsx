@@ -41,7 +41,7 @@ const AuthorizePickupModal: React.FC = () => {
       return;
     }
 
-    const wasSuccessful = await authorizePickup(token, String(entityId), pickupCode, isDonation);
+    const wasSuccessful = await authorizePickup(String(entityId), pickupCode, isDonation);
     if (wasSuccessful) {
       closeModal();
     }
