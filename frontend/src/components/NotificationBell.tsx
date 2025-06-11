@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useModalStore } from "@/store/modalStore";
 
 const NotificationBell: React.FC = () => {
     const notifications = useNotificationStore((state) => state.notifications);
@@ -18,10 +19,23 @@ const NotificationBell: React.FC = () => {
     const markAsRead = useNotificationStore((state) => state.markAsRead);
     const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
     const token = useAuthStore((state) => state.token);
+    const openModal = useModalStore((state) => state.openModal);
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.IsRead && token) {
       markAsRead(token, notification.NotificationID);
+    }
+    if (notification.Message.includes("New order received")) {
+      // This is for a Seller/Donor to authorize a pickup
+      openModal("AUTHORIZE_PICKUP", { orderId: notification.ReferenceID });
+    } else if (notification.Message.includes("has been claimed")) {
+      // This is for a Seller/Donor to authorize a pickup, but for a donation
+      openModal("AUTHORIZE_PICKUP", { claimId: notification.ReferenceID });
+    } else if (notification.Message.includes("has been picked up by delivery personnel and is on the way")) {
+      // This is for a Volunteer to confirm completion
+      openModal("COMPLETE_DELIVERY", { orderId: notification.ReferenceID });
+    } else if (notification.Message.includes("has been picked up by volunteer and is on the way")) {
+      openModal("COMPLETE_DELIVERY", { claimId: notification.ReferenceID });
     }
 
     console.log("Navigating for notification:", notification);
