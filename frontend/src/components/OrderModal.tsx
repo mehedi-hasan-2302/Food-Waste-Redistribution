@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
-import type { CreateOrderPayload } from "@/lib/types/order";
+import type { CreateClaimPayload, CreateOrderPayload } from "@/lib/types/order";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ interface OrderModalProps {
   listingId: number;
   listingPrice: number;
   listingTitle: string;
+  isDonation: boolean;
   children: React.ReactNode;
 }
 
@@ -32,10 +33,12 @@ const OrderModal: React.FC<OrderModalProps> = ({
     listingId,
     listingPrice,
     listingTitle,
+    isDonation,
     children,
 }) => {
-  const { createOrder, isLoading } = useOrderStore();
+  const { createOrder, createClaim, isLoading } = useOrderStore();
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -51,7 +54,17 @@ const OrderModal: React.FC<OrderModalProps> = ({
       toast.error("You must be logged in to place an order.");
       return;
     }
-
+    let success = false;
+    if (isDonation) {
+      const claimDetails: CreateClaimPayload = {
+        deliveryType,
+        deliveryAddress:
+          deliveryType === "HOME_DELIVERY" ? deliveryAddress : "SELF_PICKUP",
+        claimNotes: orderNotes,
+      };
+      const newClaim = await createClaim(String(listingId), claimDetails);
+      success = !!newClaim;
+    } else {
     const orderDetails: CreateOrderPayload = {
       deliveryType,
       deliveryAddress:
@@ -60,20 +73,31 @@ const OrderModal: React.FC<OrderModalProps> = ({
       orderNotes,
     };
 
-    const newOrder = await createOrder(listingId, orderDetails, token);
+    const newOrder = await createOrder(String(listingId), orderDetails)
+    success = !!newOrder;
+  }
 
-    if (newOrder) {
+    if (success) {
       setIsOpen(false);
-      navigate("/my-orders");
+      navigate("/");
     }
   };
+
+  const modalTitle = isDonation ? "Claim Donation" : "Confirm Your Order";
+  const notesLabel = isDonation
+    ? "Claim Notes (Optional)"
+    : "Order Notes (Optional)";
+  const buttonText = isDonation
+    ? "Confirm Claim"
+    : `Place Order for $${listingPrice}`;
+
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-white">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Confirm Your Order</DialogTitle>
+          <DialogTitle className="text-2xl">{modalTitle}</DialogTitle>
           <DialogDescription>
             You are placing an order for:{" "}
             <span className="font-semibold">{listingTitle}</span>
@@ -114,7 +138,7 @@ const OrderModal: React.FC<OrderModalProps> = ({
 
           <div>
             <Label htmlFor="orderNotes" className="font-semibold">
-              Order Notes (Optional)
+              {notesLabel}
             </Label>
             <Textarea
               id="orderNotes"
@@ -125,13 +149,22 @@ const OrderModal: React.FC<OrderModalProps> = ({
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="ghost" disabled={isLoading} className="bg-red-400 hover:bg-red-500 text-white">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isLoading}
+                className="bg-red-400 hover:bg-red-500 text-white"
+              >
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isLoading} className="bg-brand-green text-white hover:bg-brand-green/90">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-brand-green text-white hover:bg-brand-green/90"
+            >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Place Order for ${listingPrice}
+              {buttonText}
             </Button>
           </DialogFooter>
         </form>

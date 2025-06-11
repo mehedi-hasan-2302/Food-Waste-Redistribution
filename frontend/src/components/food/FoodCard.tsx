@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ExpiryCountdown from "@/components/food/ExpiryCountDown";
 import OrderModal from "@/components/OrderModal";
+import { useAuthStore } from "@/store/authStore";
 
 interface FoodCardProps {
   item: FoodItem;
@@ -13,6 +14,12 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
   const placeholderImage =
     "https://placehold.co/400x300/D9E3DF/1A3F36?text=Food";
   const isItemExpired = +new Date(item.PickupWindowEnd) <= +new Date();
+  const isDonation = item.IsDonation;
+  const userRole = useAuthStore((state) => state.user?.role);
+
+  const canTakeAction =
+    (userRole === "BUYER" && !isDonation) ||
+    (userRole === "CHARITY_ORG" && isDonation);
 
   return (
     <div className="block hover:no-underline group">
@@ -58,17 +65,18 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
               >
                 Unavailable
               </Button>
-            ) : (
+            ) : canTakeAction && (
               <OrderModal
                 listingId={item.ListingID}
                 listingTitle={item.Title}
+                isDonation={isDonation}
                 listingPrice={item.Price}
               >
               <Button
                 size="lg"
                 className="w-full bg-brand-green text-lg text-pale-mint hover:bg-brand-green/90 mb-1 cursor-pointer"
               >
-                Order
+                {isDonation ? "Claim Donation" : "Order"}
               </Button>
               </OrderModal>
             )}
