@@ -56,16 +56,28 @@ const router = createBrowserRouter([
         element: <FoodDisplayPage />,
       },
       {
-        path: "profile",  // Route for user profile information page
+        path: "profile", // Route for user profile information page
         element: <UserProfilePage />,
       },
       {
         path: "manage",
-        element: <FoodManagementPage />,
+        element: <ProtectedRoute allowedRoles={["DONOR_SELLER"]} />,
+        children: [
+          {
+            index: true,
+            element: <FoodManagementPage />,
+          },
+        ],
       },
       {
         path: "admin",
-        element: <AdminPage />,
+        element: <ProtectedRoute allowedRoles={["ADMIN"]} />,
+        children: [
+          {
+            index: true,
+            element: <AdminPage />,
+          },
+        ],
       },
       {
         path: "*",

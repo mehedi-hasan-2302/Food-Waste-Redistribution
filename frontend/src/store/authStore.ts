@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthState>()(
       loginError: null,
       signupError: null,
       passwordResetError: null,
-      isLoading: false,
+      isLoading: true,
       isAuthenticated: () => !!get().token && !!get().user,
       loginSuccess: (userDataFromApi: UserPrimaryData, token: string) => {
         console.log(
