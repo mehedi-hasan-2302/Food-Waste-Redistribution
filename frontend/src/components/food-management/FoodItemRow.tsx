@@ -83,7 +83,7 @@ const FoodItemRow: React.FC<FoodItemRowProps> = ({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+              className="flex h-8 w-8 p-0 data-[state=open]:bg-muted cursor-pointer hover:bg-green-50 focus:bg-green-50"
             >
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">Open menu</span>
@@ -91,12 +91,12 @@ const FoodItemRow: React.FC<FoodItemRowProps> = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-[160px] bg-popover text-popover-foreground"
+            className="w-[160px] bg-popover text-popover-foreground bg-white"
           >
             <DropdownMenuItem
               onClick={() => onEdit(item)}
               disabled={isActionDisabled}
-              className={isActionDisabled ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}
+              className={isActionDisabled ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer hover:bg-blue-50 focus:bg-blue-50"}
             >
               Edit
             </DropdownMenuItem>
