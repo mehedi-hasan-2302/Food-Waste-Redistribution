@@ -45,37 +45,64 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
       <p className="text-sm font-[Inter] text-dark-text/70 mb-6">
         Choose the role that best describes you on our platform.
       </p>
-      <form onSubmit={handleSubmit} className="space-y-4 font-[Inter]"> {/* Wrap in form for onSubmit */}
+      <form onSubmit={handleSubmit} className="space-y-4 font-[Inter]">
+        {" "}
+        {/* Wrap in form for onSubmit */}
         <div>
           <Label htmlFor="role">Select Role</Label>
-          <Select
-            onValueChange={handleSelectChange}
-            value={currentRole}
-          >
+          <Select onValueChange={handleSelectChange} value={currentRole}>
             <SelectTrigger
               id="role"
-              className={`mt-1 ${errors.role?._errors?.length ? 'border-red-500' : ''}`}
+              className={`mt-1 ${
+                errors.role?._errors?.length ? "border-red-500" : ""
+              }`}
               aria-invalid={!!errors.role?._errors?.length}
               aria-describedby="role-error"
             >
               <SelectValue placeholder="Choose your role" />
             </SelectTrigger>
             <SelectContent className="z-50 font-[Inter] bg-white border border-gray-200 shadow-md rounded-md">
-              <SelectItem value="donor" className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors">Donor / Seller</SelectItem>
-              <SelectItem value="beneficiary" className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors">Beneficiary Organization</SelectItem>
-              <SelectItem value="volunteer" className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors">Volunteer</SelectItem>
-              <SelectItem value="buyer" className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors">Buyer</SelectItem>
+              <SelectItem
+                value="donor"
+                className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors"
+              >
+                Donor / Seller
+              </SelectItem>
+              <SelectItem
+                value="beneficiary"
+                className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors"
+              >
+                Beneficiary Organization
+              </SelectItem>
+              <SelectItem
+                value="volunteer"
+                className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors"
+              >
+                Volunteer
+              </SelectItem>
+              <SelectItem value="org_volunteer"
+                className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors">
+                Organization Volunteer
+              </SelectItem>
+              <SelectItem
+                value="buyer"
+                className="hover:bg-brand-green hover:text-white cursor-pointer transition-colors"
+              >
+                Buyer
+              </SelectItem>
             </SelectContent>
           </Select>
           {errors.role?._errors?.length && (
-            <p id="role-error" className="text-xs text-red-500 mt-1">{errors.role._errors.join(', ')}</p>
+            <p id="role-error" className="text-xs text-red-500 mt-1">
+              {errors.role._errors.join(", ")}
+            </p>
           )}
         </div>
         <Button
           type="submit"
           className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
-          Proceed
+          Proceed to Email Verification
         </Button>
       </form>
     </div>

@@ -1,229 +1,222 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { z } from "zod";
-import{ Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { FiX, FiMail, FiKey } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import { useAuthStore } from "@/store/authStore";
+import axios from "axios";
+import { toast } from "react-toastify";
+import type { ForgotPasswordModalErrors } from "@/lib/types/account-recovery";
+import { EnterCodeAndPasswordStep } from "./account-recovery/EnterCodeAndPasswordStep";
+import { EnterEmailStep } from "./account-recovery/EnterEmailStep";
 
+// Zod Schemas 
+const resetPasswordFormSchema = z.object({
+  code: z.string().min(6).max(6).regex(/^\d{6}$/, "Invalid code"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  confirmNewPassword: z.string().min(8, "Password must be at least 8 characters"),
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: "Passwords don't match",
+  path: ["confirmNewPassword"],
+});
 const emailSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
-const codeSchema = z.object({
-    code: z.string().length(6, "Code must be exactly 6 characters"),
-})
-
-type ModalStep = "enterEmail" | "enterCode";
+type ModalStep = "enterEmail" | "enterCodeAndNewPassword";
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClose }) => {
+const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const [modalStep, setModalStep] = useState<ModalStep>("enterEmail");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [errors, setErrors] = useState<ForgotPasswordModalErrors>({}); 
 
-    const [modalStep, setModalStep] = useState<ModalStep>("enterEmail");
-    const [email, setEmail] = useState("");
-    const [code, setCode] = useState("");
-    const [errors, setErrors] = useState<{
-      email?: string;
-      code?: string;
-      form?: string;
-    }>({});
-    const [isCodeSent, setIsCodeSent] = useState(false);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const setIsLoading = useAuthStore((state) => state.setIsLoading);
+  const setPasswordResetError = useAuthStore(
+    (state) => state.setPasswordResetError
+  );
 
-    if(!isOpen) return null;
-
-    const handleSendCode = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setErrors({});
-        
-        const result = emailSchema.safeParse({ email });
-        if (!result.success) {
-          const fieldErrors: { email?: string } = {};
-          result.error.issues.forEach((issue) => {
-            fieldErrors[issue.path[0] as "email"] = issue.message;
-          });
-          setErrors(fieldErrors);
-          return;
-        }
-
-        // Simulate API call to send verification code
-        console.log("Sending verification code to:", result.data.email);
-        // Replace with actual API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setIsCodeSent(true);
-        setModalStep("enterCode");
-    }
-
-    const handleVerifyCode = async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
+  useEffect(() => {
+    if (isOpen) {
+      setModalStep("enterEmail");
+      setEmail("");
+      setCode("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setShowNewPassword(false);
       setErrors({});
-      const result = codeSchema.safeParse({ code });
-      if (!result.success) {
-        const fieldErrors: { code?: string } = {};
-        result.error.issues.forEach((issue) => {
-          fieldErrors[issue.path[0] as "code"] = issue.message;
-        });
-        setErrors(fieldErrors);
-        return;
-      }
+      setPasswordResetError(null);
+    }
+  }, [isOpen, setPasswordResetError]);
 
-      // Simulate API call to verify code and reset password
-      console.log("Verifying code:", result.data.code, "for email:", email);
-      // Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (result.data.code === "123456") {
-        // Simulate correct code
-        alert(
-          "Password reset instructions sent! (Or new password set - depending on flow)"
-        );
-        onClose();
-        // Reset modal state for next time
-        setEmail("");
-        setCode("");
-        setModalStep("enterEmail");
-        setIsCodeSent(false);
+  if (!isOpen) return null;
+
+  const handleSendCode = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrors({});
+    setPasswordResetError(null);
+    const result = emailSchema.safeParse({ email });
+    if (!result.success) {
+      const fieldErrors: { email?: string } = {};
+      result.error.issues.forEach((issue) => {
+        fieldErrors[issue.path[0] as "email"] = issue.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:4000/api/auth/request-password-reset",
+        { Email: result.data.email }
+      );
+      if (response.data.status === "success") {
+        toast.success(response.data.message || "Password reset code sent!");
+        setModalStep("enterCodeAndNewPassword");
       } else {
-        setErrors({ code: "Invalid verification code." });
+        const message = response.data.message || "Failed to send reset code.";
+        toast.error(message);
+        setErrors({ form: message });
+        setPasswordResetError(message);
       }
-    };
+    } catch (error) {
+      const message =
+        axios.isAxiosError(error) && error.response
+          ? error.response.data.message || "Server error."
+          : "An unexpected error occurred.";
+      toast.error(message);
+      setErrors({ form: message });
+      setPasswordResetError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const handleModalContentClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-    };
+  const handleResetPasswordSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrors({});
+    setPasswordResetError(null);
+    const validationResult = resetPasswordFormSchema.safeParse({
+      code,
+      newPassword,
+      confirmNewPassword,
+    });
+    if (!validationResult.success) {
+      const fieldErrors: any = {};
+      validationResult.error.issues.forEach((issue) => {
+        fieldErrors[issue.path[0] as string] = issue.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await axios.post("http://localhost:4000/api/auth/reset-password", {
+        Email: email,
+        Code: validationResult.data.code,
+        Password: validationResult.data.newPassword,
+        ConfirmPassword: validationResult.data.confirmNewPassword,
+      });
+      toast.success("Password has been reset successfully! Please log in.");
+      onClose();
+    } catch (error) {
+      const message =
+        axios.isAxiosError(error) && error.response
+          ? error.response.data.message || "Failed to reset password."
+          : "An unexpected error occurred.";
+      toast.error(message);
+      if (
+        message.toLowerCase().includes("code") ||
+        message.toLowerCase().includes("invalid token")
+      ) {
+        setErrors({ code: message, form: undefined });
+      } else {
+        setErrors({ form: message });
+      }
+      setPasswordResetError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
+  const goBackToEnterEmailHandler = () => {
+    if (isLoading) return;
+    setModalStep("enterEmail");
+    setCode("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setErrors({});
+    setPasswordResetError(null);
+  };
+
+  const handleModalContentClick = (e: React.MouseEvent) => e.stopPropagation();
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-        onClick={onClose}
+        className="bg-white p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-md relative"
+        onClick={handleModalContentClick}
       >
-        <div
-          className="bg-white p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-md relative"
-          onClick={handleModalContentClick}
+        <button
+          onClick={onClose}
+          disabled={isLoading}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer disabled:opacity-50"
+          aria-label="Close modal"
         >
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-            aria-label="Close modal"
-          >
-            <FiX size={24} />
-          </button>
+          <FiX size={24} />
+        </button>
 
-          {modalStep === "enterEmail" && (
-            <>
-              <h2 className="text-xl font-semibold text-dark-text mb-2">
-                Forgot Password?
-              </h2>
-              <p className="text-sm text-dark-text/70 mb-6">
-                No worries! Enter your email address below and we'll send you a
-                code to reset your password.
-              </p>
-              <form onSubmit={handleSendCode} className="space-y-4">
-                <div>
-                  <Label htmlFor="reset-email" className="sr-only">
-                    Email Address
-                  </Label>
-                  <div className="relative">
-                    <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (errors.email)
-                          setErrors((prev) => ({ ...prev, email: undefined }));
-                      }}
-                      className={`pl-10 ${
-                        errors.email ? "border-red-500" : ""
-                      }`}
-                      required
-                    />
-                  </div>
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                  )}
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
-                >
-                  Send Verification Code
-                </Button>
-              </form>
-            </>
-          )}
+        {modalStep === "enterEmail" && (
+          <EnterEmailStep
+            email={email}
+            setEmail={setEmail}
+            errors={errors}
+            setErrors={setErrors}
+            setPasswordResetError={setPasswordResetError}
+            onSubmit={handleSendCode}
+            isLoading={isLoading}
+          />
+        )}
 
-          {modalStep === "enterCode" && isCodeSent && (
-            <>
-              <h2 className="text-xl font-semibold text-dark-text mb-2">
-                Enter Verification Code
-              </h2>
-              <p className="text-sm text-dark-text/70 mb-6">
-                A 6-digit verification code has been sent to{" "}
-                <span className="font-medium text-brand-green">{email}</span>.
-                Please enter it below.
-              </p>
-              <form onSubmit={handleVerifyCode} className="space-y-4">
-                <div>
-                  <Label htmlFor="verification-code" className="sr-only">
-                    Verification Code
-                  </Label>
-                  <div className="relative">
-                    <FiKey className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      id="verification-code"
-                      type="text" // Use "text" to allow easier input, maxLength will handle length
-                      placeholder="_ _ _ _ _ _"
-                      value={code}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, ""); // Allow only digits
-                        if (val.length <= 6) setCode(val);
-                        if (errors.code)
-                          setErrors((prev) => ({ ...prev, code: undefined }));
-                      }}
-                      maxLength={6}
-                      className={`pl-10 tracking-[0.3em] text-center ${
-                        errors.code ? "border-red-500" : ""
-                      }`}
-                      required
-                    />
-                  </div>
-                  {errors.code && (
-                    <p className="text-red-500 text-xs mt-1">{errors.code}</p>
-                  )}
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
-                >
-                  Verify Code & Reset
-                </Button>
-                <Button
-                  variant="link"
-                  type="button"
-                  onClick={() => {
-                    setModalStep("enterEmail");
-                    setIsCodeSent(false);
-                    setErrors({});
-                  }}
-                  className="w-full text-brand-green text-xs cursor-pointer hover:underline"
-                >
-                  Didn't receive code? Send again or change email.
-                </Button>
-              </form>
-            </>
-          )}
-          {errors.form && (
-            <p className="text-red-500 text-sm mt-2 text-center">
-              {errors.form}
-            </p>
-          )}
-        </div>
+        {modalStep === "enterCodeAndNewPassword" && (
+          <EnterCodeAndPasswordStep
+            emailToDisplay={email}
+            code={code}
+            setCode={setCode}
+            newPassword={newPassword}
+            setNewPassword={setNewPassword}
+            confirmNewPassword={confirmNewPassword}
+            setConfirmNewPassword={setConfirmNewPassword}
+            showNewPassword={showNewPassword}
+            setShowNewPassword={setShowNewPassword}
+            errors={errors}
+            setErrors={setErrors}
+            setPasswordResetError={setPasswordResetError}
+            onSubmit={handleResetPasswordSubmit}
+            onGoBackToEnterEmail={goBackToEnterEmailHandler}
+            isLoading={isLoading}
+          />
+        )}
+
+        {errors.form && !isLoading && (
+          <p className="text-red-500 text-sm mt-4 text-center">{errors.form}</p>
+        )}
       </div>
-    );
-}
+    </div>
+  );
+};
 
 export default ForgotPasswordModal;

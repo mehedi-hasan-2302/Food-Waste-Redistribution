@@ -4,14 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FaUserPlus } from "react-icons/fa6";
 import { BiHide, BiShowAlt } from "react-icons/bi";
+import { Link } from "react-router-dom";
 
 interface FieldError {
   _errors: string[];
 }
 
 interface AccountInfoStepErrors {
-  firstName?: FieldError;
-  lastName?: FieldError;
+  fullName?: FieldError;
   email?: FieldError;
   phone?: FieldError;
   password?: FieldError;
@@ -20,8 +20,7 @@ interface AccountInfoStepErrors {
 }
 
 interface FormDataValues {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone: string;
   password: string;
@@ -57,48 +56,26 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
         Enter your details to create an account
       </p>
       <form onSubmit={onSubmit} className="space-y-4 font-[Inter]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="fullName">Full Name</Label>
             <Input
-              id="firstName"
+              id="fullName"
               type="text"
-              placeholder="John"
+              placeholder="John Doe"
               className={`mt-1 ${
-                errors.firstName?._errors?.length ? "border-red-500" : ""
+                errors.fullName?._errors?.length ? "border-red-500" : ""
               }`}
-              value={formData.firstName}
+              value={formData.fullName}
               onChange={handleInputChange}
-              aria-invalid={!!errors.firstName?._errors?.length}
-              aria-describedby="firstName-error"
+              aria-invalid={!!errors.fullName?._errors?.length}
+              aria-describedby="fullName-error"
             />
-            {errors.firstName?._errors?.length && (
-              <p id="firstName-error" className="text-xs text-red-500 mt-1">
-                {errors.firstName._errors.join(", ")}
+            {errors.fullName?._errors?.length && (
+              <p id="fullName-error" className="text-xs text-red-500 mt-1">
+                {errors.fullName._errors.join(", ")}
               </p>
             )}
-          </div>
-          <div>
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input
-              id="lastName"
-              type="text"
-              placeholder="Doe"
-              className={`mt-1 ${
-                errors.lastName?._errors?.length ? "border-red-500" : ""
-              }`}
-              value={formData.lastName}
-              onChange={handleInputChange}
-              aria-invalid={!!errors.lastName?._errors?.length}
-              aria-describedby="lastName-error"
-            />
-            {errors.lastName?._errors?.length && (
-              <p id="lastName-error" className="text-xs text-red-500 mt-1">
-                {errors.lastName._errors.join(", ")}
-              </p>
-            )}
-          </div>
-        </div>
+          </div>          
         <div>
           <Label htmlFor="email">Email Address</Label>
           <Input
@@ -205,7 +182,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
           type="submit"
           className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
         >
-          Proceed to Email Verification
+          Proceed to Role Selection
         </Button>
       </form>
       {/* Social Logins */}
@@ -230,12 +207,13 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
       </Button>
       <p className="text-xs text-center mt-6 font-[Inter]">
         Already have an account?{" "}
+        <Link to="/login">
         <span
           className="font-bold cursor-pointer hover:underline hover:text-brand-green"
-          onClick={() => alert("Sign in clicked")}
         >
           Sign in
         </span>
+        </Link>
       </p>
     </div>
   );
