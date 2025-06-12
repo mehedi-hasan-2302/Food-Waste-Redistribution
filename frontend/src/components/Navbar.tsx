@@ -19,7 +19,7 @@ import UserAvatarDropdown from "./UserAvatarDropDown";
 
 const navItems = [
     { path: "/services", label: "Services" },
-    { path: "/about", label: "About" },
+    { path: "/foods", label: "Foods" },
     { path: "/contact", label: "Contact" },
 ];
 
@@ -72,11 +72,7 @@ const Navbar: React.FC = () => {
             to="/"
             className="flex items-center space-x-2 text-dark-text hover:text-brand-green transition-colors"
           >
-            {/* Will be replaced with actual logo component or SVG*/}
-            <Sparkles className="h-6 w-6 text-brand-green" />
-            <span className="font-serif text-xl text-white font-bold">
-              YourLogo
-            </span>
+            <img src="\assets\FWR_Logo.png" alt="FWR Logo" className="h-17 w-auto" />
           </Link>
 
           {/* Desktop Navigation Links */}
@@ -107,7 +103,12 @@ const Navbar: React.FC = () => {
 
           {/* Mobile Navigation Trigger */}
           <div className="md:hidden flex items-center gap-2">
-            {isLoggedIn && <NotificationBell />}
+            {isLoggedIn && (
+              <>
+                <NotificationBell />
+                <UserAvatarDropdown onLogout={handleLogout} />
+              </>
+            )}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild className="md:hidden">
                 <Button
