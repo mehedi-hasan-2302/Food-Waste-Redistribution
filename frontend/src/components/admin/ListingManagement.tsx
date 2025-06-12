@@ -63,7 +63,7 @@ const ListingManagement: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="font-sans">Title</TableHead>
-                  <TableHead className="font-sans">Donor</TableHead>
+                  <TableHead className="font-sans">Donor-Seller</TableHead>
                   <TableHead className="font-sans">Type</TableHead>
                   <TableHead className="font-sans">Status</TableHead>
                   <TableHead className="text-right font-sans">
