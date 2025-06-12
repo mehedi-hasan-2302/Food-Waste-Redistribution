@@ -43,10 +43,10 @@ const Navbar: React.FC = () => {
         // Fetch immediately on load
         fetchNotifications(token);
 
-        // Then fetch every 60 seconds
+        // Then fetch every 15 seconds
         intervalId = setInterval(() => {
           fetchNotifications(token);
-        }, 60000); // 60 seconds
+        }, 15000); // 15 seconds
       }
       return () => {
         if (intervalId) {
