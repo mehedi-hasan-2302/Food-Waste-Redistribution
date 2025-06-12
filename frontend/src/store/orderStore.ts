@@ -128,8 +128,6 @@ export const useOrderStore = create<OrderState>((set) => ({
         }
       );
       toast.success("Pickup authorized successfully!");
-      // After success, you should re-fetch the sales/donations list to get the updated status
-      // For now, we just return true. The component can then trigger a re-fetch.
       set({ isLoading: false });
       return true;
     } catch (error) {
@@ -158,7 +156,6 @@ export const useOrderStore = create<OrderState>((set) => ({
         }
       );
       toast.success("Delivery marked as complete!");
-      // After success, you should re-fetch the deliveries list to get the updated status.
       return true;
     } catch (error) {
       const errorMessage = axios.isAxiosError(error)
