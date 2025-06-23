@@ -76,37 +76,52 @@ Food-Waste-Redistribution/
 
 ## 🚦 Getting Started
 
-### Prerequisites
-
-- Node.js (v18+ recommended)
-- PostgreSQL (local or cloud instance)
-- Cloudinary account (for image uploads)
-
-### 1. Clone the Repository
-
+<sub>Clone the Repository</sub>
 ```bash
 git clone https://github.com/mehedi-hasan-2302/food-waste-redistribution.git
+```
+
+<sub>Navigate to the Project Directory</sub>
+```bash
 cd food-waste-redistribution
 ```
 
-### 2. Backend Setup
-
+<sub>Change to Backend Directory</sub>
 ```bash
 cd backend
+```
+<sub>Copy Environment File</sub>
+```bash
 cp .env.example .env   # Fill in your DB and Cloudinary credentials
+```
+<sub>Install Dependencies</sub>
+```bash
 npm install
+```
+<sub>Build the Project</sub>
+```bash
 npm run build
+```
+<sub>Start the Server</sub>
+```bash
 npm run dev            # Starts the backend server with hot reload
 ```
-
 - Configure your PostgreSQL connection and Cloudinary keys in `.env`.
 
-### 3. Frontend Setup
-
+<sub>Change to Frontend Directory</sub>
 ```bash
 cd ../frontend
+```
+<sub>Copy Environment File</sub>
+```bash
 cp .env.example .env   # (If needed for API URLs)
+```
+<sub>Install Dependencies</sub>
+```bash
 npm install
+```
+<sub>Start the Frontend</sub>
+```bash
 npm run dev            # Starts the frontend on http://localhost:5173
 ```
 
