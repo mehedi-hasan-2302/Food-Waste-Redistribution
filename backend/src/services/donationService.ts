@@ -12,6 +12,7 @@ import {
 } from '../utils/errors'
 import { generateUniqueCode } from '../utils/codeGenerator'
 import { sendRealTimeNotification, sendDeliveryNotification } from '../services/notificationService'
+import logger from '../utils/logger'
 
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
@@ -56,10 +57,12 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
 
   if (!charityOrgUser) throw new UserDoesNotExistError()
   if (charityOrgUser.Role !== UserRole.CHARITY_ORG) {
+    logger.warn('Non-charity tried to claim donation', { charityOrgUserId })
     throw new UnauthorizedActionError('Only charity organizations can create donation claims')
   }
 
   if (!charityOrgUser.charityOrganization?.IsDocVerifiedByAdmin) {
+    logger.warn('Unverified charity tried to claim donation', { charityOrgUserId })
     throw new UnauthorizedActionError('Organization must be verified by admin to claim donations')
   }
 
@@ -85,14 +88,17 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
   if (!listing) throw new FoodListingNotFoundError()
   
   if (!listing.IsDonation) {
+    logger.warn('Tried to claim non-donation item', { charityOrgUserId, listingId })
     throw new ValidationError('Cannot create donation claim for non-donation items. Use purchase order instead.')
   }
 
   if (listing.ListingStatus !== ListingStatus.ACTIVE) {
+    logger.warn('Tried to claim inactive donation', { charityOrgUserId, listingId })
     throw new ValidationError('Cannot claim inactive donation listing')
   }
 
   if (listing.donor.UserID === charityOrgUserId) {
+    logger.warn('Tried to claim own donation', { charityOrgUserId, listingId })
     throw new ValidationError('Cannot claim your own donation listing')
   }
 
@@ -104,6 +110,7 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
   })
 
   if (existingClaim) {
+    logger.warn('Duplicate donation claim attempt', { charityOrgUserId, listingId })
     throw new ValidationError('There is already a pending claim for this donation')
   }
 
@@ -205,6 +212,7 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
     }
   })
 
+  logger.info('Donation claim created', { claimId: savedClaim.ClaimID, charityOrgUserId, listingId })
   return {
     claimId: savedClaim.ClaimID,
     claimStatus: savedClaim.ClaimStatus,
@@ -453,20 +461,20 @@ export async function reportDonationDeliveryFailure(volunteerId: number, claimId
   })
 
   if (!claim) {
+    logger.warn('Donation claim not found for delivery failure', { claimId })
     throw new ValidationError('Donation claim not found')
   }
 
   if (!claim.delivery || claim.delivery.organizationVolunteer?.user.UserID !== volunteerId) {
+    logger.warn('Unauthorized donation delivery failure report', { volunteerId, claimId })
     throw new UnauthorizedActionError('You are not assigned to this donation delivery')
   }
 
-
   claim.delivery.DeliveryStatus = DeliveryStatus.FAILED
   await deliveryRepo.save(claim.delivery)
-
-  
   claim.ClaimStatus = ClaimStatus.PENDING
   await donationClaimRepo.save(claim)
+  logger.info('Donation delivery failure reported', { claimId, volunteerId, reason })
 
   await sendRealTimeNotification({
     recipientId: claim.charityOrg.UserID,

@@ -3,6 +3,7 @@ import { Server as HTTPServer } from 'http'
 import { AppDataSource } from '../config/data-source'
 import { Notification, NotificationType } from '../models/Notification'
 import { User } from '../models/User'
+import logger from '../utils/logger'
 
 // Initialize services
 const notificationRepo = AppDataSource.getRepository(Notification)
@@ -21,22 +22,21 @@ export function initializeWebSocket(server: HTTPServer) {
   })
 
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.id)
-
+    logger.info('User connected to WebSocket', { socketId: socket.id })
 
     socket.on('join_user_room', (userId: number) => {
       socket.join(`user_${userId}`)
-      console.log(`User ${userId} joined their notification room`)
+      logger.info('User joined notification room', { userId, socketId: socket.id })
     })
 
     // Delivery personnel joins delivery room
     socket.on('join_delivery_room', (deliveryPersonId: number) => {
       socket.join(`delivery_${deliveryPersonId}`)
-      console.log(`Delivery person ${deliveryPersonId} joined delivery room`)
+      logger.info('Delivery person joined delivery room', { deliveryPersonId, socketId: socket.id })
     })
 
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id)
+      logger.info('User disconnected from WebSocket', { socketId: socket.id })
     })
   })
 }
@@ -67,10 +67,10 @@ export async function sendRealTimeNotification(payload: NotificationPayload): Pr
     await Promise.allSettled([
       sendWebSocketNotification(payload, notification)
     ])
-
+    logger.info('Real-time notification sent', { recipientId: payload.recipientId, type: payload.type })
     return notification
   } catch (error) {
-    console.error('Error sending real-time notification:', error)
+    logger.error('Error sending real-time notification', { error })
     throw error
   }
 }
@@ -98,7 +98,7 @@ async function sendWebSocketNotification(
     io.to(`delivery_${payload.recipientId}`).emit('delivery_notification', socketPayload)
   }
 
-  console.log(`WebSocket notification sent to user ${payload.recipientId}`)
+  logger.info('WebSocket notification sent', { recipientId: payload.recipientId, type: payload.type })
 }
 
 

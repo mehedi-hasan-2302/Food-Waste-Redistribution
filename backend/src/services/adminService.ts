@@ -11,6 +11,7 @@ import {
   ValidationError,
   ProfileNotFoundError 
 } from '../utils/errors'
+import logger from '../utils/logger'
 
 export interface AdminStats {
   totalUsers: number
@@ -74,6 +75,7 @@ export async function getAdminDashboardStats(): Promise<AdminStats> {
     feedbackRepo.count({ where: { AdminActionStatus: AdminActionStatus.PENDING } })
   ])
 
+  logger.info('Fetched admin dashboard stats')
   return {
     totalUsers,
     totalDonors,
@@ -117,6 +119,7 @@ export async function getAllUsers(filters: UserManagementFilters) {
     .orderBy('user.RegistrationDate', 'DESC')
     .getMany()
 
+  logger.info('Fetched all users', { filters })
   return users.map(user => ({
     UserID: user.UserID,
     Username: user.Username,
@@ -170,6 +173,7 @@ export async function getPendingVerifications() {
     })
   ])
 
+  logger.info('Fetched pending verifications')
   return {
     pendingCharities,
     pendingDelivery
@@ -185,11 +189,13 @@ export async function processVerificationRequest(request: VerificationRequest) {
   })
 
   if (!user) {
+    logger.warn('User not found for verification', { userId: request.userId })
     throw new UserDoesNotExistError()
   }
 
   if (request.type === 'charity') {
     if (!user.charityOrganization) {
+      logger.warn('Charity organization profile not found', { userId: request.userId })
       throw new ProfileNotFoundError('Charity organization profile not found')
     }
 
@@ -200,8 +206,10 @@ export async function processVerificationRequest(request: VerificationRequest) {
       user.AccountStatus = AccountStatus.CLOSED
       await userRepo.save(user)
     }
+    logger.info('Processed charity verification', { userId: request.userId, status: request.status })
   } else if (request.type === 'delivery') {
     if (!user.independentDelivery) {
+      logger.warn('Delivery personnel profile not found', { userId: request.userId })
       throw new ProfileNotFoundError('Delivery personnel profile not found')
     }
 
@@ -212,6 +220,7 @@ export async function processVerificationRequest(request: VerificationRequest) {
       user.AccountStatus = AccountStatus.CLOSED
       await userRepo.save(user)
     }
+    logger.info('Processed delivery verification', { userId: request.userId, status: request.status })
   }
 
   return {
@@ -231,19 +240,23 @@ export async function suspendUser(userId: number, reason: string) {
   })
 
   if (!user) {
+    logger.warn('User not found for suspension', { userId })
     throw new UserDoesNotExistError()
   }
 
   if (user.Role === UserRole.ADMIN) {
+    logger.warn('Attempt to suspend admin user', { userId })
     throw new UnauthorizedActionError('Cannot suspend admin users')
   }
 
   if (user.AccountStatus === AccountStatus.CLOSED) {
+    logger.warn('User already closed', { userId })
     throw new ValidationError('User is already closed')
   }
 
   user.AccountStatus = AccountStatus.CLOSED
   await userRepo.save(user)
+  logger.info('User suspended', { userId, reason })
 
   return {
     userId,
@@ -261,15 +274,18 @@ export async function reactivateUser(userId: number) {
   })
 
   if (!user) {
+    logger.warn('User not found for reactivation', { userId })
     throw new UserDoesNotExistError()
   }
 
   if (user.AccountStatus !== AccountStatus.CLOSED) {
+    logger.warn('User is not closed for reactivation', { userId })
     throw new ValidationError('User is not closed')
   }
 
   user.AccountStatus = AccountStatus.ACTIVE
   await userRepo.save(user)
+  logger.info('User reactivated', { userId })
 
   return {
     userId,
@@ -307,6 +323,7 @@ export async function getAllFoodListings(filters: any) {
     .orderBy('listing.CreatedAt', 'DESC')
     .getMany()
 
+  logger.info('Fetched all food listings', { filters })
   return listings.map(listing => ({
     ...listing,
     donor: listing.donor ? {
@@ -331,11 +348,13 @@ export async function removeFoodListing(listingId: number, reason: string) {
   })
 
   if (!listing) {
+    logger.warn('Food listing not found for removal', { listingId })
     throw new ValidationError('Food listing not found')
   }
 
   listing.ListingStatus = ListingStatus.REMOVED
   await foodListingRepo.save(listing)
+  logger.info('Food listing removed', { listingId, reason })
 
   return {
     listingId,
@@ -363,6 +382,7 @@ export async function getAllComplaints(filters: any) {
     .orderBy('feedback.CreatedAt', 'DESC')
     .getMany()
 
+  logger.info('Fetched all complaints', { filters })
   return complaints
 }
 
@@ -373,12 +393,14 @@ export async function resolveComplaint(complaintId: number, action: string, admi
   })
 
   if (!complaint) {
+    logger.warn('Complaint not found for resolution', { complaintId })
     throw new ValidationError('Complaint not found')
   }
 
   complaint.AdminActionStatus = action === 'resolve' ? AdminActionStatus.RESOLVED : AdminActionStatus.DISMISSED
   complaint.AdminNotes = adminNotes
   await feedbackRepo.save(complaint)
+  logger.info('Complaint resolved', { complaintId, action })
 
   return {
     complaintId,
@@ -415,6 +437,7 @@ export async function getSystemHealth() {
     })
   ]);
 
+  logger.info('Fetched system health')
   return {
     recentUsers,
     recentListings,

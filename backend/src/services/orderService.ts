@@ -13,6 +13,7 @@ import {
 import { generateUniqueCode } from '../utils/codeGenerator'
 import { sendRealTimeNotification, sendDeliveryNotification } from '../services/notificationService'
 import { DonorSeller } from '../models/DonorSeller'
+import logger from '../utils/logger'
 
 
 const userRepo = AppDataSource.getRepository(User)
@@ -60,6 +61,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
 
   if (!buyer) throw new UserDoesNotExistError()
   if (buyer.Role !== UserRole.BUYER) {
+    logger.warn('Non-buyer tried to create order', { buyerId })
     throw new UnauthorizedActionError('Only buyers can create orders')
   }
 
@@ -86,14 +88,17 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
   if (!listing) throw new FoodListingNotFoundError()
   
   if (listing.IsDonation) {
+    logger.warn('Attempt to order donation item', { buyerId, listingId })
     throw new ValidationError('Cannot create purchase order for donation items. Use donation claim instead.')
   }
 
   if (listing.ListingStatus !== ListingStatus.ACTIVE) {
+    logger.warn('Attempt to order inactive listing', { buyerId, listingId })
     throw new ValidationError('Cannot order inactive food listing')
   }
 
   if (listing.donor.UserID === buyerId) {
+    logger.warn('User tried to order own listing', { buyerId, listingId })
     throw new ValidationError('Cannot order your own food listing')
   }
 
@@ -107,11 +112,13 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
 
   if (orderData.deliveryType === DeliveryType.HOME_DELIVERY) {
     if (!listing.PickupLocation) {
+      logger.warn('No pickup location for home delivery', { listingId })
       throw new ValidationError('Pickup location is not specified for this listing')
     }
     
     const availableDeliveryPersonnel = await findAvailableDeliveryPersonnel(listing.PickupLocation)
     if (!availableDeliveryPersonnel) {
+      logger.warn('No delivery personnel available', { listingId })
       throw new ValidationError('No delivery personnel available in your area')
     }
     
@@ -196,6 +203,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       }
     })
 
+  logger.info('Order created', { orderId: savedOrder.OrderID, buyerId, listingId })
   return {
     orderId: savedOrder.OrderID,
     orderStatus: savedOrder.OrderStatus,
@@ -503,16 +511,18 @@ export async function reportDeliveryFailure(deliveryPersonnelId: number, orderId
   })
 
   if (!order) {
+    logger.warn('Order not found for delivery failure report', { orderId })
     throw new ValidationError('Order not found')
   }
 
   if (!order.delivery || order.delivery.independentDeliveryPersonnel?.UserID !== deliveryPersonnelId) {
+    logger.warn('Unauthorized delivery failure report', { deliveryPersonnelId, orderId })
     throw new UnauthorizedActionError('You are not assigned to this delivery')
   }
 
   order.delivery.DeliveryStatus = DeliveryStatus.FAILED
   await deliveryRepo.save(order.delivery)
-
+  logger.info('Delivery failure reported', { orderId, deliveryPersonnelId, reason })
 
   await sendRealTimeNotification({
     recipientId: order.buyer.UserID,

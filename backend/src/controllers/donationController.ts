@@ -7,6 +7,7 @@ import {
   UnauthorizedActionError,
   ValidationError
 } from '../utils/errors'
+import logger from '../utils/logger'
 
 export async function createDonationClaim(req: Request, res: Response) {
   try {
@@ -19,9 +20,11 @@ export async function createDonationClaim(req: Request, res: Response) {
     const claimData = req.body
 
     const result = await donationService.createDonationClaim(charityOrgUserId, foodListingId,claimData)
+    logger.info('Donation claim created', { userId: charityOrgUserId, foodListingId })
     return sendSuccessResponse(res, result, 'Donation claim created successfully')
 
   } catch (e: any) {
+    logger.error('Error creating donation claim', { error: e.message })
     if (e instanceof UserDoesNotExistError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof FoodListingNotFoundError) {
@@ -55,9 +58,11 @@ export async function authorizeDonationPickup(req: Request, res: Response) {
     }
 
     const result = await donationService.authorizeDonationPickup(donorId, claimId, pickupCode)
+    logger.info('Donation pickup authorized', { donorId, claimId })
     return sendSuccessResponse(res, result, 'Donation pickup authorized successfully')
 
   } catch (e: any) {
+    logger.error('Error authorizing donation pickup', { error: e.message })
     if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof UnauthorizedActionError) {
@@ -82,9 +87,11 @@ export async function completeDonationDelivery(req: Request, res: Response) {
     }
 
     const result = await donationService.completeDonationDelivery(charityOrgId, claimId)
+    logger.info('Donation delivery completed', { charityOrgId, claimId })
     return sendSuccessResponse(res, result, 'Donation delivery completed successfully')
 
   } catch (e: any) {
+    logger.error('Error completing donation delivery', { error: e.message })
     if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof UnauthorizedActionError) {
@@ -114,9 +121,11 @@ export async function reportDonationDeliveryFailure(req: Request, res: Response)
     }
 
     const result = await donationService.reportDonationDeliveryFailure(volunteerId, claimId, reason)
+    logger.info('Donation delivery failure reported', { volunteerId, claimId })
     return sendSuccessResponse(res, result, 'Donation delivery failure reported successfully')
 
   } catch (e: any) {
+    logger.error('Error reporting donation delivery failure', { error: e.message })
     if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof UnauthorizedActionError) {
@@ -141,9 +150,11 @@ export async function getDonationClaimById(req: Request, res: Response) {
     }
 
     const result = await donationService.getDonationClaimById(userId, claimId)
+    logger.info('Donation claim retrieved', { userId, claimId })
     return sendSuccessResponse(res, result, 'Donation claim retrieved successfully')
 
   } catch (e: any) {
+    logger.error('Error retrieving donation claim', { error: e.message })
     if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof UnauthorizedActionError) {
@@ -165,9 +176,11 @@ export async function getMyDonationClaims(req: Request, res: Response) {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
 
     const result = await donationService.getMyDonationClaims(charityOrgUserId, offset, parseInt(limit as string))
+    logger.info('Donation claims retrieved', { charityOrgUserId })
     return sendSuccessResponse(res, result, 'Donation claims retrieved successfully')
 
   } catch (e: any) {
+    logger.error('Error retrieving donation claims', { error: e.message })
     sendErrorResponse(res, e.message, 500)
   }
 }
@@ -183,9 +196,11 @@ export async function getMyDonationOffers(req: Request, res: Response) {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
 
     const result = await donationService.getMyDonationOffers(donorId, offset, parseInt(limit as string))
+    logger.info('Donation offers retrieved', { donorId })
     return sendSuccessResponse(res, result, 'Donation offers retrieved successfully')
 
   } catch (e: any) {
+    logger.error('Error retrieving donation offers', { error: e.message })
     sendErrorResponse(res, e.message, 500)
   }
 }
@@ -201,9 +216,11 @@ export async function getMyDonationDeliveries(req: Request, res: Response) {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
 
     const result = await donationService.getMyDonationDeliveries(volunteerId, offset, parseInt(limit as string))
+    logger.info('Donation deliveries retrieved', { volunteerId })
     return sendSuccessResponse(res, result, 'Donation deliveries retrieved successfully')
 
   } catch (e: any) {
+    logger.error('Error retrieving donation deliveries', { error: e.message })
     sendErrorResponse(res, e.message, 500)
   }
 }
@@ -223,9 +240,11 @@ export async function cancelDonationClaim(req: Request, res: Response) {
     }
 
     const result = await donationService.cancelDonationClaim(userId, claimId, reason)
+    logger.info('Donation claim cancelled', { userId, claimId })
     return sendSuccessResponse(res, result, 'Donation claim cancelled successfully')
 
   } catch (e: any) {
+    logger.error('Error cancelling donation claim', { error: e.message })
     if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof UnauthorizedActionError) {
@@ -277,9 +296,11 @@ export async function getDonationStats(req: Request, res: Response) {
       }
     }
 
+    logger.info('Donation statistics retrieved', { userId })
     return sendSuccessResponse(res, stats, 'Donation statistics retrieved successfully')
 
   } catch (e: any) {
+    logger.error('Error retrieving donation statistics', { error: e.message })
     sendErrorResponse(res, e.message, 500)
   }
 }

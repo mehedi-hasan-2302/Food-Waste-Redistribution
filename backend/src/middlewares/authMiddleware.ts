@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AppDataSource } from '../config/data-source'
 import { config } from '../config/env'
 import { User } from '../models/User'
+import logger from '../utils/logger'
 
 
 export const verifyToken = async (
@@ -62,10 +63,19 @@ export const verifyToken = async (
   }
 }
 
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    logger.warn('Unauthorized access attempt', { path: req.path })
+    return res.status(401).json({ message: 'Unauthorized' })
+  }
+  next()
+}
+
 export const requireRole = (role: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || req.user.Role !== role) {
-      return res.status(403).json({ message: 'Forbidden: Incorrect role' })
+      logger.warn('Forbidden access attempt', { path: req.path, requiredRole: role, userRole: req.user?.Role })
+      return res.status(403).json({ message: 'Forbidden' })
     }
     next()
   }
