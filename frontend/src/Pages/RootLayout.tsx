@@ -1,3 +1,4 @@
+import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar"
 import GlobalModalManager from "@/components/orders/GlobalModalManager";
 import { useAuthStore } from "@/store/authStore";
@@ -27,6 +28,7 @@ const RootLayout: React.FC = () => {
         <main>
           <Outlet />
         </main>
+        <Footer />
         <GlobalModalManager />
       </>
     );
