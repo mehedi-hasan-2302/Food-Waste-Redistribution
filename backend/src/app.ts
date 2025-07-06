@@ -8,12 +8,18 @@ import orderRoutes from './routes/orderRoutes'
 import donationRoutes from './routes/donationRoutes'
 import notificationRoutes from './routes/notificationRoutes'
 import adminRoutes from './routes/adminRoutes'
+import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss from 'xss-clean';
 
 export async function createApp(): Promise<Express> {
   await AppDataSource.initialize()
   const app = express()
   app.use(cors())
   app.use(express.json())
+  app.use(helmet());
+  app.use(mongoSanitize());
+  app.use(xss());
 
   app.use('/api/auth', authRoutes)
   app.use('/api/profile', profileRoutes)
