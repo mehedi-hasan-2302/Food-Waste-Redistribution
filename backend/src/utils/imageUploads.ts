@@ -1,5 +1,6 @@
 import cloudinary from '../config/cloudinary'
 import { UploadApiResponse } from 'cloudinary'
+import logger from './logger'
 
 export interface ImageUploadResult {
   url: string
@@ -21,6 +22,7 @@ export async function uploadImageToCloudinary(
         { format: 'auto' }
       ]
     })
+    logger.info('Image uploaded to Cloudinary', { file: file.originalname, url: result.secure_url })
 
     return {
       url: result.secure_url,
@@ -29,6 +31,7 @@ export async function uploadImageToCloudinary(
       height: result.height
     }
   } catch (error) {
+    logger.error('Image upload to Cloudinary failed', { error })
     throw new Error(`Image upload failed: ${error}`)
   }
 }
@@ -36,7 +39,8 @@ export async function uploadImageToCloudinary(
 export async function deleteImageFromCloudinary(publicId: string): Promise<void> {
   try {
     await cloudinary.uploader.destroy(publicId)
+    logger.info('Image deleted from Cloudinary', { publicId })
   } catch (error) {
-    console.error('Failed to delete image from Cloudinary:', error)
+    logger.error('Failed to delete image from Cloudinary', { error, publicId })
   }
 }

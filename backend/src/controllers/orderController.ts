@@ -7,6 +7,7 @@ import {
   UnauthorizedActionError,
   ValidationError
 } from '../utils/errors'
+import logger from '../utils/logger'
 
 
 export async function createOrder(req: Request, res: Response) {
@@ -20,19 +21,21 @@ export async function createOrder(req: Request, res: Response) {
     const orderData = req.body
 
     const result = await orderService.createOrder(buyerId, foodListingId, orderData)
+    logger.info('Order created', { buyerId: req.user?.UserID })
     return sendSuccessResponse(res, result, 'Order created successfully')
 
-  } catch (e: any) {
-    if (e instanceof UserDoesNotExistError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof FoodListingNotFoundError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof UnauthorizedActionError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof ValidationError) {
-      sendErrorResponse(res, e.message, e.statusCode)
+  } catch (error: any) {
+    logger.error('Error creating order', { error: error.message })
+    if (error instanceof UserDoesNotExistError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof FoodListingNotFoundError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof UnauthorizedActionError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof ValidationError) {
+      sendErrorResponse(res, error.message, error.statusCode)
     } else {
-      sendErrorResponse(res, e.message, 500)
+      sendErrorResponse(res, error.message, 500)
     }
   }
 }
@@ -58,15 +61,17 @@ export async function authorizePickup(req: Request, res: Response) {
     }
 
     const result = await orderService.authorizePickup(sellerId, orderId, pickupCode)
+    logger.info('Pickup authorized', { sellerId, orderId })
     return sendSuccessResponse(res, result, 'Pickup authorized successfully')
 
-  } catch (e: any) {
-    if (e instanceof ValidationError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof UnauthorizedActionError) {
-      sendErrorResponse(res, e.message, e.statusCode)
+  } catch (error: any) {
+    logger.error('Error authorizing pickup', { error: error.message })
+    if (error instanceof ValidationError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof UnauthorizedActionError) {
+      sendErrorResponse(res, error.message, error.statusCode)
     } else {
-      sendErrorResponse(res, e.message, 500)
+      sendErrorResponse(res, error.message, 500)
     }
   }
 }
@@ -86,15 +91,17 @@ export async function completeDelivery(req: Request, res: Response) {
     }
 
     const result = await orderService.completeDelivery(buyerId, orderId)
+    logger.info('Delivery completed', { buyerId, orderId })
     return sendSuccessResponse(res, result, 'Delivery completed successfully')
 
-  } catch (e: any) {
-    if (e instanceof ValidationError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof UnauthorizedActionError) {
-      sendErrorResponse(res, e.message, e.statusCode)
+  } catch (error: any) {
+    logger.error('Error completing delivery', { error: error.message })
+    if (error instanceof ValidationError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof UnauthorizedActionError) {
+      sendErrorResponse(res, error.message, error.statusCode)
     } else {
-      sendErrorResponse(res, e.message, 500)
+      sendErrorResponse(res, error.message, 500)
     }
   }
 }
@@ -119,15 +126,17 @@ export async function reportDeliveryFailure(req: Request, res: Response) {
     }
 
     const result = await orderService.reportDeliveryFailure(deliveryPersonnelId, orderId, reason)
+    logger.info('Delivery failure reported', { deliveryPersonnelId, orderId, reason })
     return sendSuccessResponse(res, result, 'Delivery failure reported successfully')
 
-  } catch (e: any) {
-    if (e instanceof ValidationError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof UnauthorizedActionError) {
-      sendErrorResponse(res, e.message, e.statusCode)
+  } catch (error: any) {
+    logger.error('Error reporting delivery failure', { error: error.message })
+    if (error instanceof ValidationError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof UnauthorizedActionError) {
+      sendErrorResponse(res, error.message, error.statusCode)
     } else {
-      sendErrorResponse(res, e.message, 500)
+      sendErrorResponse(res, error.message, 500)
     }
   }
 }
@@ -147,15 +156,17 @@ export async function getOrderById(req: Request, res: Response) {
     }
 
     const result = await orderService.getOrderById(userId, orderId)
+    logger.info('Fetched order by ID', { orderId: req.params.orderId })
     return sendSuccessResponse(res, result, 'Order retrieved successfully')
 
-  } catch (e: any) {
-    if (e instanceof ValidationError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof UnauthorizedActionError) {
-      sendErrorResponse(res, e.message, e.statusCode)
+  } catch (error: any) {
+    logger.error('Error fetching order by ID', { error: error.message })
+    if (error instanceof ValidationError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof UnauthorizedActionError) {
+      sendErrorResponse(res, error.message, error.statusCode)
     } else {
-      sendErrorResponse(res, e.message, 500)
+      sendErrorResponse(res, error.message, 500)
     }
   }
 }
@@ -172,10 +183,12 @@ export async function getMyOrders(req: Request, res: Response) {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
 
     const result = await orderService.getMyOrders(buyerId, offset, parseInt(limit as string))
+    logger.info('Fetched my orders', { buyerId, page, limit })
     return sendSuccessResponse(res, result, 'Orders retrieved successfully')
 
-  } catch (e: any) {
-    sendErrorResponse(res, e.message, 500)
+  } catch (error: any) {
+    logger.error('Error fetching my orders', { error: error.message })
+    sendErrorResponse(res, error.message, 500)
   }
 }
 
@@ -191,10 +204,12 @@ export async function getMySales(req: Request, res: Response) {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
 
     const result = await orderService.getMySales(sellerId, offset, parseInt(limit as string))
+    logger.info('Fetched my sales', { sellerId, page, limit })
     return sendSuccessResponse(res, result, 'Sales retrieved successfully')
 
-  } catch (e: any) {
-    sendErrorResponse(res, e.message, 500)
+  } catch (error: any) {
+    logger.error('Error fetching my sales', { error: error.message })
+    sendErrorResponse(res, error.message, 500)
   }
 }
 
@@ -210,10 +225,12 @@ export async function getMyDeliveries(req: Request, res: Response) {
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
 
     const result = await orderService.getMyDeliveries(deliveryPersonnelId, offset, parseInt(limit as string))
+    logger.info('Fetched my deliveries', { deliveryPersonnelId, page, limit })
     return sendSuccessResponse(res, result, 'Deliveries retrieved successfully')
 
-  } catch (e: any) {
-    sendErrorResponse(res, e.message, 500)
+  } catch (error: any) {
+    logger.error('Error fetching my deliveries', { error: error.message })
+    sendErrorResponse(res, error.message, 500)
   }
 }
 
@@ -233,15 +250,17 @@ export async function cancelOrder(req: Request, res: Response) {
     }
 
     const result = await orderService.cancelOrder(userId, orderId, reason)
+    logger.info('Order cancelled', { userId, orderId, reason })
     return sendSuccessResponse(res, result, 'Order cancelled successfully')
 
-  } catch (e: any) {
-    if (e instanceof ValidationError) {
-      sendErrorResponse(res, e.message, e.statusCode)
-    } else if (e instanceof UnauthorizedActionError) {
-      sendErrorResponse(res, e.message, e.statusCode)
+  } catch (error: any) {
+    logger.error('Error cancelling order', { error: error.message })
+    if (error instanceof ValidationError) {
+      sendErrorResponse(res, error.message, error.statusCode)
+    } else if (error instanceof UnauthorizedActionError) {
+      sendErrorResponse(res, error.message, error.statusCode)
     } else {
-      sendErrorResponse(res, e.message, 500)
+      sendErrorResponse(res, error.message, 500)
     }
   }
 }
@@ -282,9 +301,11 @@ export async function getOrderStats(req: Request, res: Response) {
       sales: salesStats
     }
 
+    logger.info('Order statistics retrieved', { userId })
     return sendSuccessResponse(res, result, 'Order statistics retrieved successfully')
 
-  } catch (e: any) {
-    sendErrorResponse(res, e.message, 500)
+  } catch (error: any) {
+    logger.error('Error retrieving order statistics', { error: error.message })
+    sendErrorResponse(res, error.message, 500)
   }
 }

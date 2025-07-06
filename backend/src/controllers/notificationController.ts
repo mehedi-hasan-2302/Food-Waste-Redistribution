@@ -1,9 +1,11 @@
 import * as notificationService from "../services/notificationService";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper";
 import { Request, Response } from "express";
+import logger from '../utils/logger'
 
 export async function getNotificationsForUser(req: Request, res: Response): Promise<void> {
   if (!req.user) {
+      logger.warn('Unauthorized notification fetch attempt')
       sendErrorResponse(res, 'User not authenticated', 401);
       return;
     }
@@ -13,8 +15,10 @@ export async function getNotificationsForUser(req: Request, res: Response): Prom
 
   try {
     const notifications = await notificationService.getNotificationsForUser(userId, limit, offset);
+    logger.info('Notifications fetched for user', { userId })
     sendSuccessResponse(res, notifications);
   } catch (error) {
+    logger.error('Error fetching notifications', { error: error instanceof Error ? error.message : String(error) })
     sendErrorResponse(res, (error instanceof Error ? error.message : String(error)));
   }
 }
@@ -25,8 +29,10 @@ export async function markNotificationAsRead(req: Request, res: Response): Promi
 
   try {
     const updatedNotification = await notificationService.markNotificationAsRead(notificationId);
+    logger.info('Notification marked as read', { notificationId })
     sendSuccessResponse(res, updatedNotification);
   } catch (error) {
+    logger.error('Error marking notification as read', { error: error instanceof Error ? error.message : String(error) })
     sendErrorResponse(res, (error instanceof Error ? error.message : String(error)));
   }
 }
@@ -35,6 +41,7 @@ export async function markNotificationAsRead(req: Request, res: Response): Promi
 export async function markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
 
   if (!req.user) {
+      logger.warn('Unauthorized mark all notifications as read attempt')
       sendErrorResponse(res, 'User not authenticated', 401);
       return;
   }
@@ -43,8 +50,10 @@ export async function markAllNotificationsAsRead(req: Request, res: Response): P
 
   try {
     const updatedNotifications = await notificationService.markAllNotificationsAsRead(userId);
+    logger.info('All notifications marked as read', { userId })
     sendSuccessResponse(res, updatedNotifications);
   } catch (error) {
+    logger.error('Error marking all notifications as read', { error: error instanceof Error ? error.message : String(error) })
     sendErrorResponse(res, (error instanceof Error ? error.message : String(error)));
   }
 }

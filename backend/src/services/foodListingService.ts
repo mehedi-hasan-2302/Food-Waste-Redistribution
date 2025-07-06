@@ -12,6 +12,7 @@ import {
 } from '../utils/errors'
 import fs from 'fs/promises'
 import { MoreThan } from 'typeorm'
+import logger from '../utils/logger'
 
 export interface FoodListingInput {
   Title: string;
@@ -79,6 +80,7 @@ export async function createFoodListingWithImage(
 
   if (!user) throw new UserDoesNotExistError();
   if (user.Role !== UserRole.DONOR_SELLER) {
+    logger.warn('Unauthorized attempt to create food listing', { userId })
     throw new UnauthorizedActionError('Only donors/sellers can create food listings');
   }
   if (!user.donorSeller) throw new ProfileNotFoundError('Donor/Seller profile not found');
@@ -93,8 +95,10 @@ export async function createFoodListingWithImage(
       imageUrl = uploadResult.url;
       imagePublicId = uploadResult.publicId;
       await fs.unlink(imageFile.path);
+      logger.info('Image uploaded to Cloudinary', { userId, imageUrl });
     } catch (error) {
-      try { await fs.unlink(imageFile.path); } catch (unlinkError) { console.error('Delete temp file failed:', unlinkError); }
+      try { await fs.unlink(imageFile.path); } catch (unlinkError) { logger.error('Delete temp file failed:', { unlinkError }); }
+      logger.error('Image upload failed', { error });
       throw new ValidationError(`Image upload failed: ${error}`);
     }
   }
@@ -122,6 +126,7 @@ export async function createFoodListingWithImage(
   foodListing.PickupLocation = validatedData.PickupLocation;
 
   const savedListing = await foodListingRepo.save(foodListing);
+  logger.info('Food listing created', { userId, listingId: savedListing.ListingID });
 
   return {
     listing: savedListing,
@@ -361,12 +366,14 @@ export async function updateFoodListingWithImage(
       listing.ImagePublicId = imagePublicId
 
       await fs.unlink(imageFile.path)
+      logger.info('Image updated for food listing', { listingId, imageUrl });
     } catch (error) {
       try {
         await fs.unlink(imageFile.path)
       } catch (unlinkError) {
         console.error('Failed to delete temp file:', unlinkError)
       }
+      logger.error('Image upload failed', { error });
       throw new ValidationError(`Image upload failed: ${error}`)
     }
   }
@@ -387,6 +394,7 @@ export async function updateFoodListingWithImage(
   if (updateData.DietaryInfo) listing.DietaryInfo = updateData.DietaryInfo
 
   const updatedListing = await foodListingRepo.save(listing)
+  logger.info('Food listing updated', { listingId });
   return updatedListing
 }
 
@@ -406,23 +414,26 @@ export async function deleteFoodListing(userId: number, listingId: number) {
   })
 
   if (!listing) {
+    logger.warn('Food listing not found for deletion', { listingId });
     throw new FoodListingNotFoundError()
   }
 
   if (listing.donor.UserID !== userId) {
+    logger.warn('Unauthorized attempt to delete food listing', { userId, listingId });
     throw new UnauthorizedActionError('You can only delete your own listings')
   }
 
   if (listing.ImagePublicId) {
     try {
       await deleteImageFromCloudinary(listing.ImagePublicId)
+      logger.info('Deleted image from Cloudinary', { listingId, imagePublicId: listing.ImagePublicId });
     } catch (error) {
-      console.error('Failed to delete image from Cloudinary:', error)
+      logger.error('Failed to delete image from Cloudinary', { error, listingId });
     }
   }
 
   await foodListingRepo.remove(listing)
-
+  logger.info('Food listing deleted', { userId, listingId });
 }
 
 

@@ -1,10 +1,12 @@
 import multer from 'multer'
 import path from 'path'
 import { ValidationError } from '../utils/errors'
+import logger from '../utils/logger'
 
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    logger.info('Uploading file', { filename: file.originalname })
     cb(null, 'temp/uploads') 
   },
   filename: (req, file, cb) => {
@@ -18,8 +20,10 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   
   if (allowedTypes.includes(file.mimetype)) {
+    logger.info('Accepted file upload', { mimetype: file.mimetype, filename: file.originalname })
     cb(null, true)
   } else {
+    logger.warn('Rejected file upload', { mimetype: file.mimetype, filename: file.originalname })
     cb(new ValidationError('Only JPEG, PNG, and WebP images are allowed'))
   }
 }

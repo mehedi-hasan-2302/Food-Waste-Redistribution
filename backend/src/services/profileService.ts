@@ -14,6 +14,7 @@ import {
   CharityOrganizationNotFoundError,
   InvalidRoleError
 } from '../utils/errors'
+import logger from '../utils/logger'
 
 export interface DonorSellerProfileInput {
   BusinessName: string
@@ -75,10 +76,12 @@ export async function completeProfile(
   })
 
   if (!user) {
+    logger.warn('User not found for profile completion', { userId })
     throw new UserDoesNotExistError()
   }
 
   if (!user.IsEmailVerified) {
+    logger.warn('Email not verified for profile completion', { userId })
     throw new EmailNotVerifiedError('Email must be verified before completing profile')
   }
 
@@ -89,6 +92,7 @@ export async function completeProfile(
                             user.organizationVolunteer
 
   if (hasExistingProfile) {
+    logger.warn('Profile already completed', { userId })
     throw new ProfileAlreadyCompletedError()
   }
 
@@ -107,6 +111,7 @@ export async function completeProfile(
       user.donorSeller = createdProfile 
       user.isProfileComplete = true
       await userRepo.save(user)
+      logger.info('DonorSeller profile completed', { userId })
       break
     
     case UserRole.CHARITY_ORG:
@@ -114,6 +119,7 @@ export async function completeProfile(
       user.charityOrganization = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
+      logger.info('CharityOrg profile completed', { userId })
       break
 
     case UserRole.BUYER:
@@ -121,6 +127,7 @@ export async function completeProfile(
       user.buyer = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
+      logger.info('Buyer profile completed', { userId })
       break
     
     case UserRole.INDEP_DELIVERY:
@@ -128,6 +135,7 @@ export async function completeProfile(
       user.independentDelivery = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
+      logger.info('IndependentDelivery profile completed', { userId })
       break
 
     case UserRole.ORG_VOLUNTEER:
@@ -135,9 +143,11 @@ export async function completeProfile(
       user.organizationVolunteer = createdProfile
       user.isProfileComplete = true
       await userRepo.save(user)
+      logger.info('OrganizationVolunteer profile completed', { userId })
       break
 
     default:
+      logger.warn('Invalid role for profile completion', { userId, role: user.Role })
       throw new InvalidRoleError()
   }
 
@@ -290,6 +300,7 @@ export async function updateProfile(userId: number, updateData: any) {
   })
 
   if (!user) {
+    logger.warn('User not found for profile update', { userId })
     throw new UserDoesNotExistError()
   }
 
@@ -311,6 +322,7 @@ export async function updateProfile(userId: number, updateData: any) {
         user.donorSeller.BusinessName = updateData.BusinessName
       }
       updatedProfile = await donorSellerRepo.save(user.donorSeller)
+      logger.info('DonorSeller profile updated', { userId })
       break
 
     case UserRole.CHARITY_ORG:
@@ -324,6 +336,7 @@ export async function updateProfile(userId: number, updateData: any) {
         user.charityOrganization.AddressLine1 = updateData.AddressLine1
       }
       updatedProfile = await charityOrgRepo.save(user.charityOrganization)
+      logger.info('CharityOrg profile updated', { userId })
       break
 
     case UserRole.BUYER:
@@ -334,6 +347,7 @@ export async function updateProfile(userId: number, updateData: any) {
         user.buyer.DefaultDeliveryAddress = updateData.DefaultDeliveryAddress
       }
       updatedProfile = await buyerRepo.save(user.buyer)
+      logger.info('Buyer profile updated', { userId })
       break
 
     case UserRole.INDEP_DELIVERY:
@@ -347,6 +361,7 @@ export async function updateProfile(userId: number, updateData: any) {
         user.independentDelivery.OperatingAreas = updateData.OperatingAreas
       }
       updatedProfile = await independentDeliveryRepo.save(user.independentDelivery)
+      logger.info('IndependentDelivery profile updated', { userId })
       break
 
     case UserRole.ORG_VOLUNTEER:
@@ -360,9 +375,11 @@ export async function updateProfile(userId: number, updateData: any) {
         user.organizationVolunteer.VolunteerContactPhone = updateData.VolunteerContactPhone
       }
       updatedProfile = await orgVolunteerRepo.save(user.organizationVolunteer)
+      logger.info('OrganizationVolunteer profile updated', { userId })
       break
 
     default:
+      logger.warn('Invalid role for profile update', { userId, role: user.Role })
       throw new InvalidRoleError('Cannot update profile for this role')
   }
 
