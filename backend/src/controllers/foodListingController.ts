@@ -8,7 +8,6 @@ import {
   UnauthorizedActionError,
   ValidationError
 } from '../utils/errors'
-import fs from 'fs/promises'
 import logger from '../utils/logger'
 
 
@@ -33,14 +32,6 @@ export async function createFoodListing(req: Request, res: Response) {
 
   } catch (e: any) {
     logger.error('Error creating food listing', { error: e.message })
-
-    if (req.file) {
-      try {
-        await fs.unlink(req.file.path)
-      } catch (unlinkError) {
-        console.error('Failed to delete temp file:', unlinkError)
-      }
-    }
 
     if (e instanceof UserDoesNotExistError) {
       sendErrorResponse(res, e.message, e.statusCode)
@@ -123,14 +114,6 @@ export async function updateFoodListing(req: Request, res: Response) {
 
   } catch (e: any) {
     logger.error('Error updating food listing', { error: e.message })
-
-    if (req.file) {
-      try {
-        await fs.unlink(req.file.path)
-      } catch (unlinkError) {
-        console.error('Failed to delete temp file:', unlinkError)
-      }
-    }
 
     if (e instanceof FoodListingNotFoundError) {
       sendErrorResponse(res, e.message, e.statusCode)

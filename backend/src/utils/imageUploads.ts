@@ -1,6 +1,7 @@
 import cloudinary from '../config/cloudinary'
 import { UploadApiResponse } from 'cloudinary'
 import logger from './logger'
+import streamifier from 'streamifier'
 
 export interface ImageUploadResult {
   url: string
@@ -14,14 +15,30 @@ export async function uploadImageToCloudinary(
   folder: string = 'food-listings'
 ): Promise<ImageUploadResult> {
   try {
-    const result: UploadApiResponse = await cloudinary.uploader.upload(file.path, {
-      folder: folder,
-      transformation: [
-        { width: 800, height: 600, crop: 'limit' },
-        { quality: 'auto:good' },
-        { format: 'auto' }
-      ]
-    })
+   
+    const streamUpload = (): Promise<UploadApiResponse> => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: folder,
+            transformation: [
+              { width: 800, height: 600, crop: 'limit' },
+              { quality: 'auto:good' },
+              { format: 'auto' }
+            ]
+          },
+          (error, result) => {
+            if (result) {
+              resolve(result as UploadApiResponse)
+            } else {
+              reject(error)
+            }
+          }
+        )
+        streamifier.createReadStream(file.buffer).pipe(stream)
+      })
+    }
+    const result: UploadApiResponse = await streamUpload()
     logger.info('Image uploaded to Cloudinary', { file: file.originalname, url: result.secure_url })
 
     return {

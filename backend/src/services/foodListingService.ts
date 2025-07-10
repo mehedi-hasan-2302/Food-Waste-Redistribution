@@ -10,7 +10,6 @@ import {
   UnauthorizedActionError,
   ValidationError
 } from '../utils/errors'
-import fs from 'fs/promises'
 import { MoreThan } from 'typeorm'
 import logger from '../utils/logger'
 
@@ -94,10 +93,8 @@ export async function createFoodListingWithImage(
       const uploadResult = await uploadImageToCloudinary(imageFile, 'food-listings');
       imageUrl = uploadResult.url;
       imagePublicId = uploadResult.publicId;
-      await fs.unlink(imageFile.path);
       logger.info('Image uploaded to Cloudinary', { userId, imageUrl });
     } catch (error) {
-      try { await fs.unlink(imageFile.path); } catch (unlinkError) { logger.error('Delete temp file failed:', { unlinkError }); }
       logger.error('Image upload failed', { error });
       throw new ValidationError(`Image upload failed: ${error}`);
     }
@@ -365,14 +362,8 @@ export async function updateFoodListingWithImage(
       listing.ImagePath = imageUrl
       listing.ImagePublicId = imagePublicId
 
-      await fs.unlink(imageFile.path)
       logger.info('Image updated for food listing', { listingId, imageUrl });
     } catch (error) {
-      try {
-        await fs.unlink(imageFile.path)
-      } catch (unlinkError) {
-        console.error('Failed to delete temp file:', unlinkError)
-      }
       logger.error('Image upload failed', { error });
       throw new ValidationError(`Image upload failed: ${error}`)
     }
