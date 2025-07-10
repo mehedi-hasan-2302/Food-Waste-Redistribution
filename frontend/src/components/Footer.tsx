@@ -29,65 +29,77 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-brand-green text-pale-mint font-sans">
-      <div className="container mx-auto max-w-screen-lg px-4 pt-16 pb-8 sm:px-6">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
+      <div className="container mx-auto max-w-screen-xl px-6 pt-20 pb-12 lg:px-8">
+        <div className="grid grid-cols-1 gap-16 lg:grid-cols-4 md:grid-cols-3">
           {/* Column 1: Logo and Motto */}
-          <div className="md:col-span-1">
-            <a href="/" className="inline-flex items-center space-x-2">
+          <div className="lg:col-span-2 md:col-span-1">
+            <a href="/" className="inline-flex items-center space-x-3">
               <img
                 src="/assets/FWR_Logo.png"
                 alt="FWR Logo"
-                className="h-16 w-auto"
+                className="h-20 w-20 rounded-full object-cover"
               />
             </a>
-            <p className="mt-4 text-sm leading-relaxed text-pale-mint/80">
-              Giving surplus food a second chance. We connect communities to
-              reduce waste and fight hunger.
+            <p className="mt-6 text-base leading-relaxed text-pale-mint/90 max-w-md">
+              Transforming surplus food into opportunity. We bridge communities 
+              to reduce waste, combat hunger, and build a sustainable future together.
             </p>
           </div>
 
-          {/* Column 2 & 3: Links */}
-          <div className="md:col-span-2 grid grid-cols-2 gap-8 sm:grid-cols-3">
+          {/* Column 2: Quick Links */}
+          <div>
+            <h3 className="font-serif font-semibold text-lg text-white mb-6">
+              Quick Links
+            </h3>
+            <ul className="space-y-4">
+              {quickLinks.slice(0, 2).map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.path}
+                    className="text-pale-mint/90 transition-colors duration-300 hover:text-white hover:underline underline-offset-4"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 3: Company */}
+          <div>
+            <h3 className="font-serif font-semibold text-lg text-white mb-6">
+              Company
+            </h3>
+            <ul className="space-y-4">
+              {quickLinks.slice(2, 4).map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.path}
+                    className="text-pale-mint/90 transition-colors duration-300 hover:text-white hover:underline underline-offset-4"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Social Links Section */}
+        <div className="mt-16 pt-8 border-t border-pale-mint/20">
+          <div className="flex flex-col items-center space-y-6 md:flex-row md:justify-between md:space-y-0">
             <div>
-              <p className="font-serif font-semibold text-white">Quick Links</p>
-              <ul className="mt-4 space-y-2">
-                {quickLinks.slice(0, 2).map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.path}
-                      className="text-sm text-pale-mint/80 transition hover:text-white"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="font-serif font-semibold text-white">Company</p>
-              <ul className="mt-4 space-y-2">
-                {quickLinks.slice(2, 4).map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.path}
-                      className="text-sm text-pale-mint/80 transition hover:text-white"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="font-serif font-semibold text-white">Follow Us</p>
-              <div className="mt-4 flex space-x-2">
+              <h4 className="font-serif font-medium text-white mb-4 text-center md:text-left">
+                Connect With Us
+              </h4>
+              <div className="flex space-x-3 justify-center md:justify-start">
                 {socialLinks.map((social) => (
                   <Button
                     key={social.name}
                     variant="ghost"
                     size="icon"
                     asChild
-                    className="text-pale-mint/80 hover:bg-white/10 hover:text-white"
+                    className="text-pale-mint/80 hover:bg-white/15 hover:text-white transition-all duration-300 rounded-full border border-pale-mint/30 hover:border-white/50"
                   >
                     <a
                       href={social.href}
@@ -101,14 +113,15 @@ const Footer: React.FC = () => {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="mt-12 border-t border-pale-mint/20 pt-8 text-center sm:text-left">
-          <div className="flex flex-col items-center justify-between sm:justify-center sm:flex-row">
-            <p className="text-xs text-pale-mint/60">
-              &copy; {new Date().getFullYear()} All rights reserved.
-            </p>
+            
+            <div className="text-center md:text-right">
+              <p className="text-sm text-pale-mint/70 leading-relaxed">
+                &copy; {new Date().getFullYear()} Food Waste Redistribution. All rights reserved.
+              </p>
+              <p className="text-xs text-pale-mint/60 mt-1">
+                Building sustainable communities through food redistribution.
+              </p>
+            </div>
           </div>
         </div>
       </div>
