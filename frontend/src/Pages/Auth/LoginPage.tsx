@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BiHide, BiShowAlt } from "react-icons/bi";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useState } from "react";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
@@ -89,39 +90,38 @@ const LoginPage: React.FC = () => {
             response.data.data.user
           ) {
             loginSuccess(response.data.data.user, response.data.data.token);
-            toast.success("Login successful!.");
-            // Navigate to a protected route, e.g., dashboard or home
-            // You'll need to decide where to go after login.
-            // For now, let's assume '/dashboard' or '/' if profile completion is next.
-            // If profile completion is mandatory next:
-            // const userRole = response.data.data.user.Role;
-            // const isProfileComplete = response.data.data.user.isProfileComplete; // IF API returns this
-            // if (!isProfileComplete) {
-            //    navigate("/complete-profile");
-            // } else {
-            //    navigate("/dashboard"); // Or role-specific dashboard
-            // }
-            navigate("/"); // Or to a dashboard page e.g. /dashboard
+            toast.success("Login successful!");
+            
+            // Reset loading state
+            setIsLoading(false);
+            
+            // Navigate based on profile completion status
+            const isProfileComplete = response.data.data.user.isProfileComplete;
+            
+            if (!isProfileComplete) {
+               navigate("/profile");
+            } else {
+               // Navigate to homepage
+               navigate("/");
+            }
           } else {
-            // Handle cases where API returns success status but no token/user (shouldn't happen with your spec)
-            setLoginError(
-              response.data.message || "Login failed. Please try again."
-            );
+            setIsLoading(false);
+            const errorMessage = response.data.message || "Login failed. Please try again.";
+            setLoginError(errorMessage);
+            toast.error(errorMessage);
           }
           
         } catch (error) {
           setIsLoading(false);
-          let message =
-            "Login failed. Please check your connection and try again.";
+          let message = "Login failed. Please check your connection and try again.";
+          
           if (axios.isAxiosError(error) && error.response) {
-            message =
-              error.response.data.message ||
-              "Invalid credentials or server error.";
-          } else {
-            setLoginError(message);
-            toast.error(message);
-            console.error("Login error:", error);
+            message = error.response.data.message || "Invalid credentials or server error.";
           }
+          
+          setLoginError(message);
+          toast.error(message);
+          console.error("Login error:", error);
         }
     }
 
@@ -237,6 +237,7 @@ const LoginPage: React.FC = () => {
                   className="w-full bg-brand-green hover:bg-brand-green/90 text-white text-lg py-3 h-auto" // Larger text, auto height
                   disabled={isLoading}
                 >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
@@ -252,6 +253,7 @@ const LoginPage: React.FC = () => {
               <Button
                 variant="outline"
                 className="w-full text-base border-dark-text/30 hover:border-brand-green hover:text-brand-green h-11 flex items-center justify-center"
+                disabled={isLoading}
               >
                 <img
                   src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -262,7 +264,7 @@ const LoginPage: React.FC = () => {
               </Button>
 
               <p className="text-sm text-center mt-8 text-dark-text/80">
-                Don’t have an account?{" "}
+                Don't have an account?{" "}
                 <Link
                   to="/signup"
                   className="font-semibold text-highlight hover:underline"

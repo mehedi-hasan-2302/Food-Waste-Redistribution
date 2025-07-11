@@ -80,11 +80,11 @@ const FoodManagementPage: React.FC = () => {
       const updatedItem = await updateListing(
         token!,
         String(editingItem.ListingID),
-        formData
+        formData as FoodItemFormData
       );
       success = !!updatedItem;
     } else {
-      const newItem = await createListing(token!, formData);
+      const newItem = await createListing(token!, formData as FoodItemFormData);
       success = !!newItem;
     }
 
