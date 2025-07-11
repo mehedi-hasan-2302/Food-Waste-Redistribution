@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FaUserPlus } from "react-icons/fa6";
 import { BiHide, BiShowAlt } from "react-icons/bi";
+import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface FieldError {
@@ -32,6 +33,7 @@ interface AccountInfoFormProps {
   errors: AccountInfoStepErrors;
   handleInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  isLoading?: boolean;
 }
 
 const AccountInfo: React.FC<AccountInfoFormProps> = ({
@@ -39,13 +41,27 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
   errors,
   handleInputChange,
   onSubmit,
+  isLoading = false,
 }) => {
 
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [internalLoading, setInternalLoading] = useState<boolean>(false);
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev: boolean) => !prev);
   }
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    setInternalLoading(true);
+    
+    onSubmit(e);
+    
+    setTimeout(() => {
+      setInternalLoading(false);
+    }, 2000);
+  }
+
+  const isCurrentlyLoading = isLoading || internalLoading;
 
   return (
     <div>
@@ -55,7 +71,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
       <p className="text-sm font-[Inter] text-dark-text/70 mb-6">
         Enter your details to create an account
       </p>
-      <form onSubmit={onSubmit} className="space-y-4 font-[Inter]">
+      <form onSubmit={handleSubmit} className="space-y-4 font-[Inter]">
           <div>
             <Label htmlFor="fullName">Full Name</Label>
             <Input
@@ -67,6 +83,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
               }`}
               value={formData.fullName}
               onChange={handleInputChange}
+              disabled={isCurrentlyLoading}
               aria-invalid={!!errors.fullName?._errors?.length}
               aria-describedby="fullName-error"
             />
@@ -87,6 +104,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
             }`}
             value={formData.email}
             onChange={handleInputChange}
+            disabled={isCurrentlyLoading}
             aria-invalid={!!errors.email?._errors?.length}
             aria-describedby="email-error"
           />
@@ -107,6 +125,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
             }`}
             value={formData.phone}
             onChange={handleInputChange}
+            disabled={isCurrentlyLoading}
             aria-invalid={!!errors.phone?._errors?.length}
             aria-describedby="phone-error"
           />
@@ -138,6 +157,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
             }`}
             value={formData.password}
             onChange={handleInputChange}
+            disabled={isCurrentlyLoading}
             aria-invalid={!!errors.password?._errors?.length}
             aria-describedby="password-error"
           />
@@ -169,6 +189,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
             }`}
             value={formData.confirmPassword}
             onChange={handleInputChange}
+            disabled={isCurrentlyLoading}
             aria-invalid={!!errors.confirmPassword?._errors?.length}
             aria-describedby="confirmPassword-error"
           />
@@ -180,9 +201,11 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
         </div>
         <Button
           type="submit"
-          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
+          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isCurrentlyLoading}
         >
-          Proceed to Role Selection
+          {isCurrentlyLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isCurrentlyLoading ? "Processing..." : "Proceed to Role Selection"}
         </Button>
       </form>
       {/* Social Logins */}
@@ -197,6 +220,7 @@ const AccountInfo: React.FC<AccountInfoFormProps> = ({
         variant="outline"
         className="w-full cursor-pointer"
         onClick={() => alert("Google Sign up clicked")}
+        disabled={isCurrentlyLoading}
       >
         <img
           src="https://www.svgrepo.com/show/475656/google-color.svg"

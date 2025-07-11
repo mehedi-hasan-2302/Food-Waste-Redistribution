@@ -1,4 +1,4 @@
-import type { FormEvent } from "react"; 
+import { useState, type FormEvent } from "react"; 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FiUsers } from "react-icons/fi";
+import { Loader2 } from "lucide-react";
 
 interface FieldError {
   _errors: string[];
@@ -24,6 +25,7 @@ interface RoleSelectionProps {
   errors: RoleSelectionErrors;
   handleSelectChange: (value: string) => void;
   onNext: () => void;
+  isLoading?: boolean;
 }
 
 const RoleSelection: React.FC<RoleSelectionProps> = ({
@@ -31,11 +33,22 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
   errors,
   handleSelectChange,
   onNext,
+  isLoading = false,
 }) => {
+  const [internalLoading, setInternalLoading] = useState<boolean>(false);
+
   const handleSubmit = (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    setInternalLoading(true);
+    
     onNext();
+    
+    setTimeout(() => {
+      setInternalLoading(false);
+    }, 2000);
   };
+
+  const isCurrentlyLoading = isLoading || internalLoading;
 
   return (
     <div>
@@ -50,7 +63,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
         {/* Wrap in form for onSubmit */}
         <div>
           <Label htmlFor="role">Select Role</Label>
-          <Select onValueChange={handleSelectChange} value={currentRole}>
+          <Select onValueChange={handleSelectChange} value={currentRole} disabled={isCurrentlyLoading}>
             <SelectTrigger
               id="role"
               className={`mt-1 ${
@@ -100,9 +113,11 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({
         </div>
         <Button
           type="submit"
-          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer"
+          className="w-full bg-brand-green hover:bg-brand-green/90 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isCurrentlyLoading}
         >
-          Proceed to Email Verification
+          {isCurrentlyLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isCurrentlyLoading ? "Processing..." : "Proceed to Email Verification"}
         </Button>
       </form>
     </div>
