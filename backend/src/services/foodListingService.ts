@@ -862,6 +862,7 @@ export async function toggleListingStatus(userId: number, listingId: number, sta
       }
     }
   })
+  
 
   if (!listing) {
     throw new FoodListingNotFoundError()
