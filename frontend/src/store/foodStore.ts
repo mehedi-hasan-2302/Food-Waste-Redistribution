@@ -10,8 +10,8 @@ interface FoodState {
   isLoading: boolean;
   error: string | null;
   fetchMyListings: (token: string) => Promise<void>;
-  fetchListingById: (token: string, listingId: string) => Promise<void>;
-  fetchAllListings: (token: string) => Promise<void>;
+  fetchListingById: (listingId: string) => Promise<void>;
+  fetchAllListings: () => Promise<void>;
   createListing: (
     token: string,
     formData: Partial<FoodItemFormData>
@@ -86,12 +86,12 @@ export const useFoodStore = create<FoodState>((set) => ({
     }
   },
 
-  fetchListingById: async (token, listingId) => {
+  fetchListingById: async (listingId: string) => {
     set({ isLoading: true, error: null, selectedItem: null });
     try {
+      // Make request without authentication headers since this is a public route
       const response = await axios.get(
-        `http://localhost:4000/api/food-listings/${listingId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `http://localhost:4000/api/food-listings/${listingId}`
       );
 
       if (response.data && response.data.status === "success") {
@@ -122,18 +122,16 @@ export const useFoodStore = create<FoodState>((set) => ({
     }
   },
 
-  fetchAllListings: async (token) => {
+  fetchAllListings: async () => {
     set({ isLoading: true, error: null });
     try {
+      // Make request without authentication headers since this is a public route
       const response = await axios.get(
-        "http://localhost:4000/api/food-listings/",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        "http://localhost:4000/api/food-listings/"
       );
 
       const listings: FoodItem[] = response.data.data.map((item: any) => ({
-        ListingID: item.listing.ListingId, 
+        ListingID: item.listing.ListingID,
         Title: item.listing.title,
         Description: item.listing.description,
         FoodType: item.listing.foodType,

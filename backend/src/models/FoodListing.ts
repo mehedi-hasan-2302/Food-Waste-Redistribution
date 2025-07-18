@@ -45,7 +45,7 @@ export class FoodListing {
   @Column({ nullable: true })
   DietaryInfo?: string;
 
-  @Column('date')
+  @Column('timestamp')
   CookedDate!: Date;
 
   @Column({ default: true })

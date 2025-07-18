@@ -1,12 +1,10 @@
 import FoodItemDetail from "@/components/food/FoodItemDetail";
 import { useEffect } from "react";
 import { useParams, Link as RouterLink } from "react-router-dom";
-import { useAuthStore } from "@/store/authStore";
 import { useFoodStore } from "@/store/foodStore";
 
 const FoodDisplayPage: React.FC = () => {
   const { itemId } = useParams<{ itemId: string }>();
-  const token = useAuthStore((state) => state.token);
   const selectedItem = useFoodStore((state) => state.selectedItem);
   const isLoading = useFoodStore((state) => state.isLoading);
   const error = useFoodStore((state) => state.error);
@@ -14,14 +12,14 @@ const FoodDisplayPage: React.FC = () => {
   const clearSelectedItem = useFoodStore((state) => state.clearSelectedItem);
 
   useEffect(() => {
-    if (itemId && token) {
-      // Simulate fetching item by ID
-      fetchListingById(token, itemId);
+    if (itemId) {
+      // Fetch item details without requiring authentication since it's a public route
+      fetchListingById(itemId);
     }
     return () => {
       clearSelectedItem();
     }
-  }, [itemId, token, fetchListingById, clearSelectedItem]);
+  }, [itemId, fetchListingById, clearSelectedItem]);
 
   if (isLoading || selectedItem === undefined) {
     return (
