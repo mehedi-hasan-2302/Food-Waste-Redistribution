@@ -142,3 +142,25 @@ export const resetPasswordSchema = Joi.object({
       'any.only': 'Passwords do not match',
     }),
 })
+
+export const changePasswordSchema = Joi.object({
+  CurrentPassword: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Current password is required',
+    }),
+  NewPassword: Joi.string()
+    .min(8)
+    .required()
+    .messages({
+      'string.empty': 'New password is required',
+      'string.min': 'New password must be at least 8 characters',
+    }),
+  ConfirmPassword: Joi.string()
+    .valid(Joi.ref('NewPassword'))
+    .required()
+    .messages({
+      'string.empty': 'Confirm password is required',
+      'any.only': 'Passwords do not match',
+    }),
+})

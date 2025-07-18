@@ -17,7 +17,8 @@ import {
   InvalidVerificationCodeError,
   PasswordResetTokenNotFoundError,
   InvalidPasswordResetTokenError,
-  PasswordMismatchError
+  PasswordMismatchError,
+  ValidationError
 } from '../utils/errors'
 import logger from '../utils/logger'
 
@@ -38,6 +39,12 @@ export interface ResetPasswordInput {
   Email: string;
   Code: string;
   Password: string;
+  ConfirmPassword: string;
+}
+
+export interface ChangePasswordInput {
+  CurrentPassword: string;
+  NewPassword: string;
   ConfirmPassword: string;
 }
 
@@ -111,7 +118,8 @@ export async function login(data: LoginInput) {
     { 
       id: user.UserID, 
       email: user.Email, 
-      role: user.Role 
+      role: user.Role,
+      tokenValidFrom: user.TokenValidFrom.getTime()
     },
     config.jsonToken.secret as string, 
     { expiresIn: '24h' }
@@ -233,7 +241,44 @@ export async function resetPassword(data: ResetPasswordInput) {
   user.PasswordHash = hashedPassword
   user.passwordResetToken = null
   user.passwordResetExpires = null
+  user.TokenValidFrom = new Date() // Invalidate all existing tokens
 
   await userRepo.save(user)
-  logger.info('Password reset successful', { email: data.Email })
+  logger.info('Password reset successful - all sessions invalidated', { email: data.Email })
+}
+
+
+export async function changePassword(userId: number, data: ChangePasswordInput) {
+  const user = await userRepo.findOneBy({ UserID: userId })
+
+  if (!user) {
+    logger.warn('Password change failed: user not found', { userId })
+    throw new UserDoesNotExistError()
+  }
+
+  // current password verify
+  const isCurrentPasswordValid = await bcrypt.compare(data.CurrentPassword, user.PasswordHash)
+  if (!isCurrentPasswordValid) {
+    logger.warn('Password change failed: invalid current password', { userId })
+    throw new InvalidCredentialsError('Current password is incorrect')
+  }
+
+  if (data.NewPassword !== data.ConfirmPassword) {
+    logger.warn('Password change failed: passwords do not match', { userId })
+    throw new PasswordMismatchError()
+  }
+
+  //if new password is different from current
+  const isSamePassword = await bcrypt.compare(data.NewPassword, user.PasswordHash)
+  if (isSamePassword) {
+    throw new ValidationError('New password must be different from current password')
+  }
+
+  const hashedPassword = await bcrypt.hash(data.NewPassword, 10)
+  
+  user.PasswordHash = hashedPassword
+  user.TokenValidFrom = new Date() // Invalidate all existing tokens
+
+  await userRepo.save(user)
+  logger.info('Password changed successfully', { userId })
 }
