@@ -67,7 +67,7 @@ export async function getFoodListingById(req: Request, res: Response) {
   try {
     const listingId = parseInt(req.params.id)
     
-    if (isNaN(listingId)) {
+    if (isNaN(listingId) || listingId <= 0) {
       return sendErrorResponse(res, 'Invalid listing ID', 400)
     }
 
@@ -76,9 +76,11 @@ export async function getFoodListingById(req: Request, res: Response) {
     return sendSuccessResponse(res, result, 'Food listing retrieved successfully')
 
   } catch (e: any) {
-    logger.error('Error fetching food listing by ID', { error: e.message })
+    logger.error('Error fetching food listing by ID', { error: e.message, listingId: req.params.id })
 
     if (e instanceof FoodListingNotFoundError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else {
       sendErrorResponse(res, e.message, 500)
@@ -169,7 +171,6 @@ export async function getMyFoodListings(req: Request, res: Response) {
 
     const userId = req.user.UserID
     const filters = req.query
-    // Use page-based pagination like your previous project
     const { page = 1, limit = 10 } = req.query
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
     

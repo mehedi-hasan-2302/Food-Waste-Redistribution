@@ -31,7 +31,6 @@ const FoodListPage: React.FC = () => {
     const isLoading = useFoodStore((state) => state.isLoading);
     const error = useFoodStore((state) => state.error);
     const fetchAllListings = useFoodStore((state) => state.fetchAllListings);
-    const token = useAuthStore((state) => state.token);
     const isAuthenticated = useAuthStore((state) =>
       state.isAuthenticated()
     );
@@ -41,10 +40,8 @@ const FoodListPage: React.FC = () => {
     const [sortValue, setSortValue] = useState<string>("default");
 
     useEffect(() => {
-      if (token) {
-        fetchAllListings(token);
-      }
-    }, [token, fetchAllListings]);
+      fetchAllListings();
+    }, [fetchAllListings]);
 
     const processedItems = useProcessedFoodItems(
       allListings,
@@ -55,8 +52,10 @@ const FoodListPage: React.FC = () => {
     if (isLoading && allListings.length === 0) {
       return (
         <div className="container mx-auto p-6 text-center min-h-screen flex justify-center items-center">
-          <p className="text-xl text-dark-text">Loading food items...</p>
-          {/* You can add a spinner here */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
+            <p className="text-xl text-dark-text">Loading food items...</p>
+          </div>
         </div>
       );
     }
@@ -110,7 +109,7 @@ const FoodListPage: React.FC = () => {
           </Select>
         </div>
 
-        {/* Display based on raw API data before client-side processing for initial "no items" message */}
+       
         {allListings.length === 0 && !isLoading && !error && (
           <div className="text-center text-dark-text/80 py-10">
             <p className="text-xl mb-2">
@@ -120,7 +119,7 @@ const FoodListPage: React.FC = () => {
           </div>
         )}
 
-        {/* Display processed items or message if filtering results in no matches */}
+
         {allListings.length > 0 && processedItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {processedItems.map((item) => (
@@ -130,7 +129,7 @@ const FoodListPage: React.FC = () => {
         ) : (
           allListings.length > 0 &&
           !isLoading &&
-          !error && ( // Show this only if there were raw items but processing cleared them
+          !error && ( // only if there were raw items but processing cleared them
             <div className="text-center text-dark-text/80 py-10">
               <p className="text-xl mb-2">
                 No food items match your current search or filter criteria.
