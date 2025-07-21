@@ -8,6 +8,7 @@ import { useState } from "react";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
+import { API_CONFIG } from "@/config/api";
 import axios from "axios";
 import { toast } from "react-toastify";
 
@@ -77,7 +78,7 @@ const LoginPage: React.FC = () => {
         setIsLoading(true);
         try {
           const response = await axios.post(
-            "http://localhost:4000/api/auth/login",
+            `${API_CONFIG.baseURL}/api/auth/login`,
             {
               Email: result.data.email,
               Password: result.data.password,

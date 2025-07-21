@@ -3,6 +3,7 @@ import { Eye, EyeOff, Lock, KeyRound } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
+import { API_CONFIG } from "@/config/api";
 import { z } from "zod";
 
 interface ChangePasswordProps {
@@ -189,7 +190,7 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ onSuccess }) => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:4000/api/auth/change-password",
+        `${API_CONFIG.baseURL}/api/auth/change-password`,
         formData,
         {
           headers: { 

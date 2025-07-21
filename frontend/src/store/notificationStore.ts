@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_CONFIG } from "@/config/api";
 import type { Notification } from "@/lib/types/notification";
 
 interface NotificationState {
@@ -22,7 +23,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     // No need to set loading true for background fetches
     try {
       const response = await axios.get(
-        "http://localhost:4000/api/notifications/get-notifications",
+        `${API_CONFIG.baseURL}/api/notifications/get-notifications`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -49,7 +50,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await axios.patch(
-        `http://localhost:4000/api/notifications/${notificationId}/read`,
+        `${API_CONFIG.baseURL}/api/notifications/${notificationId}/read`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -77,7 +78,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await axios.patch(
-        "http://localhost:4000/api/notifications/read-all",
+        `${API_CONFIG.baseURL}/api/notifications/read-all`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

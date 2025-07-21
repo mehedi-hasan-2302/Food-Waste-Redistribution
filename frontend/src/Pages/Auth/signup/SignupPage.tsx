@@ -9,6 +9,7 @@ import RoleSelection from "./steps/RoleSelection";
 import RegistrationCompletion from "./steps/RegistrationCompletion";
 import { z } from "zod/v4";
 import { useAuthStore } from "@/store/authStore";
+import { API_CONFIG } from "@/config/api";
 import { toast } from "react-toastify";
 import axios from "axios";
 
@@ -215,7 +216,7 @@ export default function SignupPage() {
     try {
       const response = await axios.post(
         /* ...API details */
-        "http://localhost:4000/api/auth/verify-email",
+        `${API_CONFIG.baseURL}/api/auth/verify-email`,
         { Email: formData.email, Code: verificationCode }
       );
       if (response.data.status === "success") {
@@ -293,7 +294,7 @@ export default function SignupPage() {
       };
       const response = await axios.post(
         /* ...API details */
-        "http://localhost:4000/api/auth/signup",
+        `${API_CONFIG.baseURL}/api/auth/signup`,
         signupData
       );
 

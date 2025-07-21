@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_CONFIG } from "@/config/api";
 import type { UserProfileData } from "@/components/profile/UserProfile";
 import { type AppUser } from "./authStore";
 
@@ -49,7 +50,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(
-        "http://localhost:4000/api/profile/get-profile",
+        `${API_CONFIG.baseURL}/api/profile/get-profile`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -108,7 +109,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
       }
 
       const response = await axios.post(
-        "http://localhost:4000/api/profile/complete",
+        `${API_CONFIG.baseURL}/api/profile/complete`,
         payload,
         { headers }
       );

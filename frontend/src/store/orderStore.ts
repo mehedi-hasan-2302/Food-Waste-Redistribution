@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_CONFIG } from "@/config/api";
 import type { Order, CreateOrderPayload, CreateClaimPayload } from "@/lib/types/order";
 import { useAuthStore } from "./authStore";
 
@@ -51,7 +52,7 @@ export const useOrderStore = create<OrderState>((set) => ({
     try {
       const headers = { ...getAuthHeaders(), "Content-Type": "application/json" };
       const response = await axios.post(
-        `http://localhost:4000/api/orders/${listingId}/create-order`,
+        `${API_CONFIG.baseURL}/api/orders/${listingId}/create-order`,
         orderDetails,
         {
           headers
@@ -85,7 +86,7 @@ export const useOrderStore = create<OrderState>((set) => ({
     try {
       const headers = { ...getAuthHeaders(), "Content-Type": "application/json" };
       const response = await axios.post(
-        `http://localhost:4000/api/donations/${listingId}/create-claim`,
+        `${API_CONFIG.baseURL}/api/donations/${listingId}/create-claim`,
         claimDetails,
         {
           headers,
@@ -117,8 +118,8 @@ export const useOrderStore = create<OrderState>((set) => ({
   authorizePickup: async (orderId, pickupCode, isDonation = false) => {
     set({ isLoading: true, error: null });
     const endpoint = isDonation
-      ? `http://localhost:4000/api/donations/${orderId}/authorize-pickup`
-      : `http://localhost:4000/api/orders/${orderId}/authorize-pickup`;
+      ? `${API_CONFIG.baseURL}/api/donations/${orderId}/authorize-pickup`
+      : `${API_CONFIG.baseURL}/api/orders/${orderId}/authorize-pickup`;
     try {
       await axios.post(
         endpoint,
@@ -145,8 +146,8 @@ export const useOrderStore = create<OrderState>((set) => ({
   completeDelivery: async ( orderId, isDonation = false) => {
     set({ isLoading: true, error: null });
     const endpoint = isDonation
-      ? `http://localhost:4000/api/donations/${orderId}/complete-delivery`
-      : `http://localhost:4000/api/orders/${orderId}/complete-delivery`;
+      ? `${API_CONFIG.baseURL}/api/donations/${orderId}/complete-delivery`
+      : `${API_CONFIG.baseURL}/api/orders/${orderId}/complete-delivery`;
     try {
       await axios.post(
         endpoint,
