@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import type { ForgotPasswordModalErrors } from "@/lib/types/account-recovery";
 import { EnterCodeAndPasswordStep } from "./account-recovery/EnterCodeAndPasswordStep";
 import { EnterEmailStep } from "./account-recovery/EnterEmailStep";
+import { API_CONFIG } from "@/config/api";
 
 // Zod Schemas 
 const resetPasswordFormSchema = z.object({
@@ -77,7 +78,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:4000/api/auth/request-password-reset",
+        `${API_CONFIG.baseURL}/api/auth/request-password-reset`,
         { Email: result.data.email }
       );
       if (response.data.status === "success") {
@@ -121,7 +122,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     }
     setIsLoading(true);
     try {
-      await axios.post("http://localhost:4000/api/auth/reset-password", {
+      await axios.post(`${API_CONFIG.baseURL}/api/auth/reset-password`, {
         Email: email,
         Code: validationResult.data.code,
         Password: validationResult.data.newPassword,
