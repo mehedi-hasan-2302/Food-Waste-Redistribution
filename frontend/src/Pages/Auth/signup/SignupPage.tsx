@@ -13,6 +13,22 @@ import { toast } from "react-toastify";
 import axios from "axios";
 
 // Define schemas for form validation using Zod
+const PasswordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .refine((val) => /[A-Z]/.test(val), {
+    message: "Password must contain at least one uppercase letter",
+  })
+  .refine((val) => /[a-z]/.test(val), {
+    message: "Password must contain at least one lowercase letter",
+  })
+  .refine((val) => /\d/.test(val), {
+    message: "Password must contain at least one number",
+  })
+  .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), {
+    message: "Password must contain at least one special character",
+  });
+
 const AccountInfoSchema = z
   .object({
     fullName: z.string().min(1, "Full name is required"),
@@ -22,21 +38,7 @@ const AccountInfoSchema = z
       .min(11, "Phone number must be at least 11 characters")
       .max(14, "Phone number must be at most 14 characters")
       .regex(/^\d+$/, "Phone number must contain only digits"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .refine((val) => /[A-Z]/.test(val), {
-        message: "Password must contain at least one uppercase letter",
-      })
-      .refine((val) => /[a-z]/.test(val), {
-        message: "Password must contain at least one lowercase letter",
-      })
-      .refine((val) => /\d/.test(val), {
-        message: "Password must contain at least one number",
-      })
-      .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), {
-        message: "Password must contain at least one special character",
-      }),
+    password: PasswordSchema,
     confirmPassword: z.string().min(1, "Confirm password is required"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -103,6 +105,7 @@ export default function SignupPage() {
     setFormData((prev) => ({ ...prev, [id]: value }));
     setSignupError(null);
 
+    // Clear existing errors for the field
     if (formErrors[id as keyof PageFormData]) {
       setFormErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
@@ -116,6 +119,46 @@ export default function SignupPage() {
         delete newErrors._errors;
         return newErrors;
       });
+    }
+
+    // Real-time validation for password field
+    if (id === "password" && value) {
+      try {
+        PasswordSchema.parse(value);
+        // Clear password errors if validation passes
+        setFormErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          delete newErrors.password;
+          return newErrors;
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          setFormErrors((prevErrors) => ({
+            ...prevErrors,
+            password: {
+              _errors: error.issues.map((issue) => issue.message),
+            },
+          }));
+        }
+      }
+    }
+
+    // Check password match in real-time for confirm password
+    if (id === "confirmPassword" && value && formData.password) {
+      if (value !== formData.password) {
+        setFormErrors((prevErrors) => ({
+          ...prevErrors,
+          confirmPassword: {
+            _errors: ["Passwords do not match"],
+          },
+        }));
+      } else {
+        setFormErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          delete newErrors.confirmPassword;
+          return newErrors;
+        });
+      }
     }
   };
 

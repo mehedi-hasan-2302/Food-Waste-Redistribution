@@ -13,7 +13,8 @@ import {
   InvalidVerificationCodeError,
   PasswordResetTokenNotFoundError,
   InvalidPasswordResetTokenError,
-  PasswordMismatchError
+  PasswordMismatchError,
+  ValidationError
 } from '../utils/errors'
 import logger from '../utils/logger'
 
@@ -120,6 +121,35 @@ export async function resetPassword(req: Request, res: Response) {
     } else if (e instanceof InvalidPasswordResetTokenError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else if (e instanceof PasswordMismatchError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else {
+      sendErrorResponse(res, e.message, 500)
+    }
+  }
+}
+
+
+export async function changePassword(req: Request, res: Response) {
+  try {
+    const userId = req.user?.UserID
+    if (!userId) {
+      return sendErrorResponse(res, 'Authentication required', 401)
+    }
+
+    const { CurrentPassword, NewPassword, ConfirmPassword } = req.body
+    await authService.changePassword(userId, { CurrentPassword, NewPassword, ConfirmPassword })
+    sendSuccessResponse(res, null, 'Password changed successfully. Please login again with your new password.')
+    logger.info('Password changed successfully', { userId })
+
+  } catch (e: any) {
+    logger.error('Password change error', { error: e.message, userId: req.user?.UserID })
+    if (e instanceof UserDoesNotExistError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof InvalidCredentialsError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof PasswordMismatchError) {
+      sendErrorResponse(res, e.message, e.statusCode)
+    } else if (e instanceof ValidationError) {
       sendErrorResponse(res, e.message, e.statusCode)
     } else {
       sendErrorResponse(res, e.message, 500)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { FoodItem, FoodItemFormData } from "@/lib/types/FoodItem"; // Adjust path
+import type { FoodItem, FoodItemFormData } from "@/lib/types/FoodItem"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +36,14 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
 
   const isEditMode = !!initialData;
 
+  // Helper function to convert UTC date to local datetime-local input format
+  const toLocalDateTimeString = (dateString: string): string => {
+    const date = new Date(dateString);
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().slice(0, 16);
+  };
+
   const now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   const minDateTime = now.toISOString().slice(0, 16);
@@ -48,17 +56,17 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
       setFoodType(initialData.FoodType || "");
       setCookedDate(
         initialData.CookedDate
-          ? new Date(initialData.CookedDate).toISOString().slice(0, 16)
+          ? toLocalDateTimeString(initialData.CookedDate)
           : ""
       );
       setPickupStart(
         initialData.PickupWindowStart
-          ? new Date(initialData.PickupWindowStart).toISOString().slice(0, 16)
+          ? toLocalDateTimeString(initialData.PickupWindowStart)
           : ""
       );
       setPickupEnd(
         initialData.PickupWindowEnd
-          ? new Date(initialData.PickupWindowEnd).toISOString().slice(0, 16)
+          ? toLocalDateTimeString(initialData.PickupWindowEnd)
           : ""
       );
       setPickupLocation(initialData.PickupLocation || "");
@@ -120,9 +128,9 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
       formData = {
         ...formData,
         FoodType: foodType,
-        CookedDate: new Date(cookedDate + "Z").toISOString(),
-        PickupWindowStart: new Date(pickupStart + "Z").toISOString(),
-        PickupWindowEnd: new Date(pickupEnd + "Z").toISOString(),
+        CookedDate: new Date(cookedDate).toISOString(),
+        PickupWindowStart: new Date(pickupStart).toISOString(),
+        PickupWindowEnd: new Date(pickupEnd).toISOString(),
         PickupLocation: pickupLocation,
         IsDonation: isDonation,
       };

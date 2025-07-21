@@ -73,6 +73,9 @@ export class User {
     @Column({ type: 'boolean', default: false })
     isProfileComplete?: boolean
 
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    TokenValidFrom!: Date
+
     @Column({ type: 'enum', enum: AccountStatus, default: AccountStatus.PENDING })
     AccountStatus!: AccountStatus
 

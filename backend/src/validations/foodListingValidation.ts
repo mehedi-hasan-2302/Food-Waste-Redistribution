@@ -37,7 +37,6 @@ export const createFoodListingSchema = Joi.object({
 
   CookedDate: Joi.date()
     .required()
-    .max('now')
     .messages({
       'date.base': 'Cooked date must be a valid date',
       'any.required': 'Cooked date is required',
@@ -46,7 +45,6 @@ export const createFoodListingSchema = Joi.object({
 
   PickupWindowStart: Joi.date()
     .required()
-    .min('now')
     .messages({
       'date.base': 'Pickup window start must be a valid date',
       'any.required': 'Pickup window start is required',
@@ -81,13 +79,11 @@ export const createFoodListingSchema = Joi.object({
     then: Joi.number().strict(false)
       .required()
       .min(0.01)
-      .max(999999.99)
       .precision(2)
       .messages({
         'number.base': 'Price must be a valid number',
         'any.required': 'Price is required when not a donation',
-        'number.min': 'Price must be at least $0.01',
-        'number.max': 'Price cannot exceed $999,999.99',
+        'number.min': 'Price must be at least 1tk',
         'number.precision': 'Price can have at most 2 decimal places',
       }),
     otherwise: Joi.number()

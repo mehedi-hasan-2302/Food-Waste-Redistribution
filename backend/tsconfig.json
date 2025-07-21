@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["es2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,11 +13,12 @@
     "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types", "src/types"],
-    "types": ["express"] 
+    "types": ["express", "jest", "node"] 
   },
   "include": [
     "src/**/*",
-    "src/types/**/*"
+    "src/types/**/*",
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",

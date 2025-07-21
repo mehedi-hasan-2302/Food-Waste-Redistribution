@@ -35,10 +35,38 @@ export const verifyToken = async (
         'independentDelivery',
         'organizationVolunteer',
       ],
+      select: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        PhoneNumber: true,
+        Role: true,
+        IsEmailVerified: true,
+        TokenValidFrom: true,
+        AccountStatus: true,
+        donorSeller: { ProfileID: true },
+        charityOrganization: { ProfileID: true },
+        buyer: { ProfileID: true },
+        independentDelivery: { ProfileID: true },
+        organizationVolunteer: { OrgVolunteerID: true }
+      }
     })
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid user' })
+    }
+
+    //if token was issued before the user's TokenValidFrom timestamp
+    if (decoded.tokenValidFrom && user.TokenValidFrom) {
+      const tokenValidFromTime = user.TokenValidFrom.getTime()
+      if (decoded.tokenValidFrom < tokenValidFromTime) {
+        logger.warn('Token invalidated due to password change', { 
+          userId: user.UserID, 
+          tokenValidFrom: decoded.tokenValidFrom, 
+          userTokenValidFrom: tokenValidFromTime 
+        })
+        return res.status(401).json({ message: 'Token invalidated due to security update' })
+      }
     }
 
     if (!user.IsEmailVerified) {
