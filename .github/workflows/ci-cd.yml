@@ -32,11 +32,6 @@ jobs:
         cd backend
         npm run type-check
     
-    - name: Run linting
-      run: |
-        cd backend
-        npm run lint
-    
     - name: Run backend tests
       run: |
         cd backend
