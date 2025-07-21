@@ -38,7 +38,6 @@ const OrderModal: React.FC<OrderModalProps> = ({
 }) => {
   const { createOrder, createClaim, isLoading } = useOrderStore();
   const token = useAuthStore((state) => state.token);
-  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
