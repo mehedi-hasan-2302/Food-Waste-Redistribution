@@ -2,6 +2,7 @@ import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuthStore } from "./authStore";
+import { API_CONFIG } from "@/config/api";
 import type { AdminUser, DashboardStats, FoodListing, PendingCharity, PendingDelivery, ProcessVerificationPayload } from "@/lib/types/admin";
 
 const getAuthHeaders = () => {
@@ -48,7 +49,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(
-        `http://localhost:4000/api/admin/dashboard/stats`,
+        `${API_CONFIG.baseURL}/api/admin/dashboard/stats`,
         { headers: getAuthHeaders() }
       );
       if (response.data.status === "success") {
@@ -67,7 +68,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(
-        `http://localhost:4000/api/admin/verifications/pending`,
+        `${API_CONFIG.baseURL}/api/admin/verifications/pending`,
         { headers: getAuthHeaders() }
       );
       if (response.data.status === "success") {
@@ -91,7 +92,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await axios.post(
-        `http://localhost:4000/api/admin/verifications/process`,
+        `${API_CONFIG.baseURL}/api/admin/verifications/process`,
         payload,
         { headers: { ...getAuthHeaders(), "Content-Type": "application/json" } }
       );
@@ -115,7 +116,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(
-        `http://localhost:4000/api/admin/users`,
+        `${API_CONFIG.baseURL}/api/admin/users`,
         { headers: getAuthHeaders() }
       );
       if (response.data.status === "success") {
@@ -134,7 +135,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await axios.put(
-        `http://localhost:4000/api/admin/users/${userId}/suspend`,
+        `${API_CONFIG.baseURL}/api/admin/users/${userId}/suspend`,
         { reason },
         { headers: { ...getAuthHeaders(), "Content-Type": "application/json" } }
       );
@@ -156,7 +157,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await axios.put(
-        `http://localhost:4000/api/admin/users/${userId}/reactivate`,
+        `${API_CONFIG.baseURL}/api/admin/users/${userId}/reactivate`,
         {},
         { headers: getAuthHeaders() }
       );
@@ -177,7 +178,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(
-        `http://localhost:4000/api/admin/food-listings`,
+        `${API_CONFIG.baseURL}/api/admin/food-listings`,
         { headers: getAuthHeaders() }
       );
       if (response.data.status === "success") {
@@ -196,7 +197,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await axios.delete(
-        `http://localhost:4000/api/admin/food-listings/${listingId}`,
+        `${API_CONFIG.baseURL}/api/admin/food-listings/${listingId}`,
         {
           headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
           data: { reason },

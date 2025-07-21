@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_CONFIG } from "@/config/api";
 import type { FoodItem, FoodItemFormData } from "@/lib/types/FoodItem";
 
 interface FoodState {
@@ -51,7 +52,7 @@ export const useFoodStore = create<FoodState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(
-        "http://localhost:4000/api/food-listings/my/listings",
+        `${API_CONFIG.baseURL}/api/food-listings/my/listings`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -91,7 +92,7 @@ export const useFoodStore = create<FoodState>((set) => ({
     try {
       // Make request without authentication headers since this is a public route
       const response = await axios.get(
-        `http://localhost:4000/api/food-listings/${listingId}`
+        `${API_CONFIG.baseURL}/api/food-listings/${listingId}`
       );
 
       if (response.data && response.data.status === "success") {
@@ -127,7 +128,7 @@ export const useFoodStore = create<FoodState>((set) => ({
     try {
       // Make request without authentication headers since this is a public route
       const response = await axios.get(
-        "http://localhost:4000/api/food-listings/"
+        `${API_CONFIG.baseURL}/api/food-listings/`
       );
 
       const listings: FoodItem[] = response.data.data.map((item: any) => ({
@@ -167,7 +168,7 @@ export const useFoodStore = create<FoodState>((set) => ({
       const apiFormData = buildFoodItemFormData(formData);
 
       const response = await axios.post(
-        "http://localhost:4000/api/food-listings/upload",
+        `${API_CONFIG.baseURL}/api/food-listings/upload`,
         apiFormData,
         {
           headers: {
@@ -216,7 +217,7 @@ export const useFoodStore = create<FoodState>((set) => ({
         console.log(key, value);
       }
       const response = await axios.put(
-        `http://localhost:4000/api/food-listings/${listingId}/update`,
+        `${API_CONFIG.baseURL}/api/food-listings/${listingId}/update`,
         apiFormData,
         {
           headers: {
@@ -251,7 +252,7 @@ export const useFoodStore = create<FoodState>((set) => ({
     set({ isLoading: true });
     try {
       await axios.delete(
-        `http://localhost:4000/api/food-listings/${listingId}`,
+        `${API_CONFIG.baseURL}/api/food-listings/${listingId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
