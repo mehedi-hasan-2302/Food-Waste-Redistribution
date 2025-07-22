@@ -25,6 +25,18 @@ export const config = {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET
-  }
+  },
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  cors: {
+    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [
+      'http://localhost:5173',  // Local development
+      'http://localhost:3000',  // Alternative local port
+      process.env.FRONTEND_URL || 'http://localhost:5173',  // Production frontend
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
 
 } 
