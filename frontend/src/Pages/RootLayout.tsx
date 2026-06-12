@@ -1,5 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar"
+import RealtimeNotifications from "@/components/RealtimeNotifications";
 import GlobalModalManager from "@/components/orders/GlobalModalManager";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
@@ -24,6 +25,7 @@ const RootLayout: React.FC = () => {
           pauseOnHover
           theme="light"
         />
+        <RealtimeNotifications />
         <Navbar />
         <main>
           <Outlet />
