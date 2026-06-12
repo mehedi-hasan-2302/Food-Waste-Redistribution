@@ -1,8 +1,9 @@
 import { Server as SocketIOServer } from 'socket.io'
 import { Server as HTTPServer } from 'http'
+import jwt from 'jsonwebtoken'
 import { AppDataSource } from '../config/data-source'
 import { Notification, NotificationType } from '../models/Notification'
-import { User } from '../models/User'
+import { AccountStatus, User, UserRole } from '../models/User'
 import { config } from '../config/env'
 import logger from '../utils/logger'
 
@@ -14,6 +15,15 @@ const userRepo = AppDataSource.getRepository(User)
 // WebSocket server
 let io: SocketIOServer
 
+interface SocketUser {
+  id: number
+  role: UserRole
+}
+
+function getHandshakeToken(authToken: unknown): string | null {
+  return typeof authToken === 'string' && authToken.trim() ? authToken : null
+}
+
 export function initializeWebSocket(server: HTTPServer) {
   io = new SocketIOServer(server, {
     cors: {
@@ -22,22 +32,57 @@ export function initializeWebSocket(server: HTTPServer) {
     }
   })
 
+  io.use(async (socket, next) => {
+    try {
+      const token = getHandshakeToken(socket.handshake.auth?.token)
+      if (!token) {
+        return next(new Error('Authentication required'))
+      }
+
+      const decoded = jwt.verify(token, config.jsonToken.secret) as any
+      const user = await userRepo.findOne({
+        where: { UserID: decoded.id },
+        select: ['UserID', 'Role', 'IsEmailVerified', 'AccountStatus', 'TokenValidFrom']
+      })
+
+      if (!user || !user.IsEmailVerified || user.AccountStatus !== AccountStatus.ACTIVE) {
+        return next(new Error('Authentication required'))
+      }
+
+      if (decoded.tokenValidFrom && user.TokenValidFrom) {
+        const tokenValidFromTime = user.TokenValidFrom.getTime()
+        if (decoded.tokenValidFrom < tokenValidFromTime) {
+          return next(new Error('Authentication required'))
+        }
+      }
+
+      socket.data.user = {
+        id: user.UserID,
+        role: user.Role
+      } satisfies SocketUser
+
+      next()
+    } catch (error) {
+      logger.warn('WebSocket authentication failed', { socketId: socket.id })
+      next(new Error('Authentication required'))
+    }
+  })
+
   io.on('connection', (socket) => {
-    logger.info('User connected to WebSocket', { socketId: socket.id })
+    const socketUser = socket.data.user as SocketUser
+    socket.join(`user_${socketUser.id}`)
+    logger.info('User connected to WebSocket', { userId: socketUser.id, socketId: socket.id })
 
-    socket.on('join_user_room', (userId: number) => {
-      socket.join(`user_${userId}`)
-      logger.info('User joined notification room', { userId, socketId: socket.id })
-    })
-
-    // Delivery personnel joins delivery room
-    socket.on('join_delivery_room', (deliveryPersonId: number) => {
-      socket.join(`delivery_${deliveryPersonId}`)
-      logger.info('Delivery person joined delivery room', { deliveryPersonId, socketId: socket.id })
-    })
+    if (socketUser.role === UserRole.INDEP_DELIVERY || socketUser.role === UserRole.ORG_VOLUNTEER) {
+      socket.join(`delivery_${socketUser.id}`)
+      logger.info('Delivery person joined delivery room', {
+        deliveryPersonId: socketUser.id,
+        socketId: socket.id
+      })
+    }
 
     socket.on('disconnect', () => {
-      logger.info('User disconnected from WebSocket', { socketId: socket.id })
+      logger.info('User disconnected from WebSocket', { userId: socketUser.id, socketId: socket.id })
     })
   })
 }
