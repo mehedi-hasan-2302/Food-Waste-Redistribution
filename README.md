@@ -121,7 +121,76 @@ npm run lint
 npm run preview
 ```
 
+## Deployment Notes
+
+This repo is easiest to deploy as two separate projects:
+
+- Backend project root: `backend`
+- Frontend project root: `frontend`
+
+### Backend Environment
+
+Set these variables in the backend host:
+
+```env
+NODE_ENV=production
+DB_HOST=<supabase-pooler-host>
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres.<project-ref>
+DB_PASSWORD=<your-database-password>
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=false
+JWT_SECRET=<long-random-secret>
+JWT_EXPIRES_IN=24h
+FRONTEND_URL=https://<your-frontend-domain>
+CORS_ORIGINS=https://<your-frontend-domain>,http://localhost:5173
+SMTP_HOST=<your-smtp-host>
+SMTP_PORT=465
+SMTP_USER=<your-smtp-user>
+SMTP_PASSWORD=<your-smtp-password>
+CLOUDINARY_CLOUD_NAME=<your-cloudinary-cloud-name>
+CLOUDINARY_API_KEY=<your-cloudinary-api-key>
+CLOUDINARY_API_SECRET=<your-cloudinary-api-secret>
+```
+
+Run migrations against the production database before using a fresh deployment:
+
+```bash
+cd backend
+npm run migration:show
+npm run migration:run
+```
+
+After deployment, check:
+
+```http
+GET /api/health
+```
+
+The endpoint returns `200` when the API and database are reachable. It returns `503` with `status: "degraded"` when the API is up but the database is not reachable.
+
+### Frontend Environment
+
+Set this in the frontend host:
+
+```env
+VITE_API_BASE_URL=https://<your-backend-domain>
+VITE_APP_NAME=Food Waste Redistribution
+VITE_NODE_ENV=production
+```
+
+### Realtime Hosting Note
+
+Vercel serverless functions are fine for the REST API, but they are not a good fit for long-running Socket.IO connections. For production realtime notifications and live chat, deploy the backend on a long-running Node host such as Render, Railway, Fly.io, an EC2/VPS server, or switch realtime features to a managed realtime service.
+
 ## API Overview
+
+### Health
+
+```http
+GET /api/health
+```
 
 ### Auth
 

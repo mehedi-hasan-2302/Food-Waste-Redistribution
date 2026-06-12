@@ -49,6 +49,7 @@ export interface ChangePasswordInput {
 }
 
 const userRepo = AppDataSource.getRepository(User)
+const CODE_HASH_ROUNDS = 10
 
 
 export async function signup(data: SignupInput) {
@@ -70,15 +71,17 @@ export async function signup(data: SignupInput) {
 
   const code = crypto.randomInt(100000, 1000000).toString();
   const expires = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+  const hashedPassword = await bcrypt.hash(data.Password, 10)
+  const hashedVerificationCode = await bcrypt.hash(code, CODE_HASH_ROUNDS)
 
   const user = userRepo.create({
     Username: data.Username,
     Email: data.Email,
     PhoneNumber: data.PhoneNumber,
-    PasswordHash: await bcrypt.hash(data.Password, 10),
+    PasswordHash: hashedPassword,
     Role: data.Role as UserRole,
     AccountStatus: AccountStatus.PENDING,
-    verificationCode: code,
+    verificationCode: hashedVerificationCode,
     verificationCodeExpires: expires,
     IsEmailVerified: false
   })
@@ -161,7 +164,8 @@ export async function verifyEmail(email: string, code: string) {
     throw new VerificationCodeNotFoundError()
   }
   
-  if (user.verificationCode !== code || user.verificationCodeExpires < new Date()) {
+  const isCodeValid = await bcrypt.compare(code, user.verificationCode)
+  if (!isCodeValid || user.verificationCodeExpires < new Date()) {
     logger.warn('Email verification failed: invalid or expired code', { email })
     throw new InvalidVerificationCodeError()
   }
@@ -203,8 +207,9 @@ export async function requestForgotPasswordReset(email: string) {
 
   const resetCode = crypto.randomInt(100000, 1000000).toString()
   const resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+  const hashedResetCode = await bcrypt.hash(resetCode, CODE_HASH_ROUNDS)
 
-  user.passwordResetToken = resetCode
+  user.passwordResetToken = hashedResetCode
   user.passwordResetExpires = resetCodeExpires
 
   await userRepo.save(user)
@@ -226,7 +231,8 @@ export async function resetPassword(data: ResetPasswordInput) {
     throw new PasswordResetTokenNotFoundError()
   }
 
-  if (user.passwordResetToken !== data.Code || user.passwordResetExpires < new Date()) {
+  const isResetCodeValid = await bcrypt.compare(data.Code, user.passwordResetToken)
+  if (!isResetCodeValid || user.passwordResetExpires < new Date()) {
     logger.warn('Password reset failed: invalid or expired token', { email: data.Email })
     throw new InvalidPasswordResetTokenError()
   }
