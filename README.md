@@ -211,23 +211,6 @@ GET /api/admin/complaints
 PUT /api/admin/complaints/:complaintId/resolve
 ```
 
-## Security Notes
-
-- Do not commit `.env` files.
-- Use a long random `JWT_SECRET` outside local development.
-- Supabase pooler connections usually need `DB_SSL=true`.
-- Cloudinary and SMTP credentials are optional for local compilation, but required for real image upload and email delivery flows.
-- Current token storage and auth flow should be hardened before production use.
-
-## Current Upgrade Focus
-
-The project is being upgraded in small milestones:
-
-1. Foundation: setup, environment, database, docs, reproducible checks
-2. Reliability: auth hardening, centralized errors, transactions, Socket.IO server wiring
-3. Core workflows: buyer, donor, charity, and volunteer dashboards
-4. Product features: live chat, map-based matching, impact analytics, ratings, payments
-
 ## Contributors
 
 - Mehedi Hasan
