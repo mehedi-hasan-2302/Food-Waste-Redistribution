@@ -214,6 +214,72 @@ describe('AuthMiddleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
 
+    it('should return 403 when user account is closed', async () => {
+      const mockToken = 'valid-jwt-token';
+      const mockDecodedToken = {
+        id: 1,
+        tokenValidFrom: new Date().getTime()
+      };
+
+      const mockUser = {
+        UserID: 1,
+        Username: 'closeduser',
+        Email: 'closed@example.com',
+        TokenValidFrom: new Date(mockDecodedToken.tokenValidFrom - 1000),
+        Role: UserRole.BUYER,
+        IsEmailVerified: true,
+        AccountStatus: AccountStatus.CLOSED,
+      } as Partial<User>;
+
+      mockRequest.headers = {
+        authorization: `Bearer ${mockToken}`
+      };
+
+      mockedJwt.verify.mockReturnValue(mockDecodedToken as any);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+
+      await verifyToken(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        message: 'Account is not active'
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when user account is pending', async () => {
+      const mockToken = 'valid-jwt-token';
+      const mockDecodedToken = {
+        id: 1,
+        tokenValidFrom: new Date().getTime()
+      };
+
+      const mockUser = {
+        UserID: 1,
+        Username: 'pendinguser',
+        Email: 'pending@example.com',
+        TokenValidFrom: new Date(mockDecodedToken.tokenValidFrom - 1000),
+        Role: UserRole.BUYER,
+        IsEmailVerified: true,
+        AccountStatus: AccountStatus.PENDING,
+      } as Partial<User>;
+
+      mockRequest.headers = {
+        authorization: `Bearer ${mockToken}`
+      };
+
+      mockedJwt.verify.mockReturnValue(mockDecodedToken as any);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+
+      await verifyToken(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        message: 'Account is not active'
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
     it('should return 401 when token is issued before user TokenValidFrom', async () => {
       // Arrange
       const mockToken = 'valid-jwt-token';

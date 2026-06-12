@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { AppDataSource } from '../config/data-source'
 import { config } from '../config/env'
-import { User } from '../models/User'
+import { AccountStatus, User } from '../models/User'
 import logger from '../utils/logger'
 
 
@@ -54,6 +54,14 @@ export const verifyToken = async (
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid user' })
+    }
+
+    if (user.AccountStatus !== AccountStatus.ACTIVE) {
+      logger.warn('Inactive account attempted authenticated access', {
+        userId: user.UserID,
+        accountStatus: user.AccountStatus,
+      })
+      return res.status(403).json({ message: 'Account is not active' })
     }
 
     //if token was issued before the user's TokenValidFrom timestamp
