@@ -16,7 +16,7 @@ interface ChatState {
   openConversationWithUser: (token: string, userId: number) => Promise<void>;
   fetchMessages: (token: string, conversationId: number) => Promise<void>;
   sendMessage: (token: string, recipientId: number, message: string) => Promise<void>;
-  addRealtimeMessage: (message: ChatMessage) => void;
+  addRealtimeMessage: (message: ChatMessage, currentUserId: number) => void;
 }
 
 const authHeader = (token: string) => ({
@@ -116,6 +116,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       );
       set({
         messages: response.data.data || [],
+        conversations: get().conversations.map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, unreadCount: 0 }
+            : conversation
+        ),
         isLoading: false,
       });
     } catch (error) {
@@ -142,13 +147,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  addRealtimeMessage: (message) => {
+  addRealtimeMessage: (message, currentUserId) => {
     set((state) => {
       const alreadyExists = state.messages.some(
         (existing) => existing.id === message.id
       );
       const belongsToActiveConversation =
         state.activeConversation?.id === message.conversationId;
+      const shouldIncrementUnread =
+        !belongsToActiveConversation && message.senderId !== currentUserId;
 
       return {
         messages:
@@ -157,7 +164,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             : [...state.messages, message],
         conversations: state.conversations.map((conversation) =>
           conversation.id === message.conversationId
-            ? { ...conversation, updatedAt: message.createdAt }
+            ? {
+                ...conversation,
+                lastMessage: message,
+                unreadCount: shouldIncrementUnread
+                  ? conversation.unreadCount + 1
+                  : conversation.unreadCount,
+                updatedAt: message.createdAt,
+              }
             : conversation
         ),
       };

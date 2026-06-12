@@ -105,7 +105,7 @@ const ChatPage: React.FC = () => {
                 >
                   <span className="block font-medium">{user.username}</span>
                   <span className="block text-xs text-dark-text/60">
-                    {user.email} · {user.role}
+                    {user.email} - {user.role}
                   </span>
                 </button>
               ))}
@@ -135,10 +135,19 @@ const ChatPage: React.FC = () => {
                       : "border-dark-text/10 bg-white hover:bg-pale-mint/60"
                   }`}
                 >
-                  <p className="font-medium">{conversation.otherUser.username}</p>
-                  <p className="text-xs uppercase tracking-wide text-dark-text/60">
-                    {conversation.otherUser.role}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{conversation.otherUser.username}</p>
+                      <p className="truncate text-xs text-dark-text/60">
+                        {conversation.lastMessage?.message || conversation.otherUser.role}
+                      </p>
+                    </div>
+                    {conversation.unreadCount > 0 && (
+                      <span className="rounded-full bg-highlight px-2 py-0.5 text-xs font-semibold text-white">
+                        {conversation.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))
             )}

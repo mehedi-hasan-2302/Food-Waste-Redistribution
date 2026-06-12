@@ -91,7 +91,7 @@ export async function getConversationsForUser(userId: number) {
     order: { UpdatedAt: 'DESC' },
   })
 
-  return conversations.map(conversation => formatConversation(conversation, userId))
+  return Promise.all(conversations.map(conversation => formatConversation(conversation, userId)))
 }
 
 export async function getMessagesForConversation(
@@ -108,6 +108,17 @@ export async function getMessagesForConversation(
     take: limit,
     skip: offset,
   })
+
+  const unreadMessages = messages.filter(
+    message => message.recipient.UserID === userId && !message.IsRead
+  )
+
+  if (unreadMessages.length > 0) {
+    unreadMessages.forEach(message => {
+      message.IsRead = true
+    })
+    await messageRepo.save(unreadMessages)
+  }
 
   return messages.map(formatMessage)
 }
@@ -203,10 +214,24 @@ function normalizeParticipantIds(userId: number, otherUserId: number): [number, 
   return userId < otherUserId ? [userId, otherUserId] : [otherUserId, userId]
 }
 
-function formatConversation(conversation: ChatConversation, currentUserId: number) {
+async function formatConversation(conversation: ChatConversation, currentUserId: number) {
   const otherUser = conversation.participantOne.UserID === currentUserId
     ? conversation.participantTwo
     : conversation.participantOne
+  const [lastMessage, unreadCount] = await Promise.all([
+    messageRepo.findOne({
+      where: { conversation: { ConversationID: conversation.ConversationID } },
+      relations: ['sender', 'recipient'],
+      order: { CreatedAt: 'DESC' },
+    }),
+    messageRepo.count({
+      where: {
+        conversation: { ConversationID: conversation.ConversationID },
+        recipient: { UserID: currentUserId },
+        IsRead: false,
+      },
+    }),
+  ])
 
   return {
     id: conversation.ConversationID,
@@ -215,6 +240,8 @@ function formatConversation(conversation: ChatConversation, currentUserId: numbe
       username: otherUser.Username,
       role: otherUser.Role,
     },
+    lastMessage: lastMessage ? formatMessage(lastMessage) : null,
+    unreadCount,
     createdAt: conversation.CreatedAt,
     updatedAt: conversation.UpdatedAt,
   }

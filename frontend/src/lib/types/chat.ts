@@ -11,6 +11,8 @@ export interface ChatSearchUser extends ChatUserSummary {
 export interface ChatConversation {
   id: number;
   otherUser: ChatUserSummary;
+  lastMessage?: ChatMessage | null;
+  unreadCount: number;
   createdAt: string;
   updatedAt: string;
 }

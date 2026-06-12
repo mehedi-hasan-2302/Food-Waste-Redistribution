@@ -11,6 +11,8 @@ const mockConversationRepository = {
 
 const mockMessageRepository = {
   find: jest.fn(),
+  findOne: jest.fn(),
+  count: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
 }
@@ -55,6 +57,8 @@ describe('chatService', () => {
     chatService = require('../../src/services/chatService')
 
     jest.clearAllMocks()
+    mockMessageRepository.findOne.mockResolvedValue(null)
+    mockMessageRepository.count.mockResolvedValue(0)
     mockUserRepository.findOneBy.mockImplementation(({ UserID }) => {
       if (UserID === 1) return Promise.resolve(userOne)
       if (UserID === 2) return Promise.resolve(userTwo)
@@ -89,6 +93,72 @@ describe('chatService', () => {
 
     expect(result).toEqual([])
     expect(mockUserRepository.find).not.toHaveBeenCalled()
+  })
+
+  it('should include last message and unread count in conversations', async () => {
+    const conversation = {
+      ConversationID: 10,
+      participantOne: userOne,
+      participantTwo: userTwo,
+      CreatedAt: new Date('2026-01-01T00:00:00Z'),
+      UpdatedAt: new Date('2026-01-01T00:02:00Z'),
+    } as any
+    const lastMessage = {
+      MessageID: 51,
+      conversation,
+      sender: userTwo,
+      recipient: userOne,
+      Message: 'Latest update',
+      IsRead: false,
+      CreatedAt: new Date('2026-01-01T00:02:00Z'),
+    } as any
+
+    mockConversationRepository.find.mockResolvedValue([conversation])
+    mockMessageRepository.findOne.mockResolvedValue(lastMessage)
+    mockMessageRepository.count.mockResolvedValue(2)
+
+    const result = await chatService.getConversationsForUser(1)
+
+    expect(result).toEqual([expect.objectContaining({
+      id: 10,
+      unreadCount: 2,
+      lastMessage: expect.objectContaining({
+        id: 51,
+        message: 'Latest update',
+        senderId: 2,
+        recipientId: 1,
+      }),
+    })])
+  })
+
+  it('should mark unread messages as read when messages are fetched', async () => {
+    const conversation = {
+      ConversationID: 10,
+      participantOne: userOne,
+      participantTwo: userTwo,
+    } as any
+    const unreadMessage = {
+      MessageID: 51,
+      conversation,
+      sender: userTwo,
+      recipient: userOne,
+      Message: 'Unread',
+      IsRead: false,
+      CreatedAt: new Date('2026-01-01T00:02:00Z'),
+    } as any
+
+    mockConversationRepository.findOne.mockResolvedValue(conversation)
+    mockMessageRepository.find.mockResolvedValue([unreadMessage])
+
+    const result = await chatService.getMessagesForConversation(1, 10)
+
+    expect(mockMessageRepository.save).toHaveBeenCalledWith([expect.objectContaining({
+      IsRead: true,
+    })])
+    expect(result[0]).toEqual(expect.objectContaining({
+      isRead: true,
+      message: 'Unread',
+    }))
   })
 
   it('should create a conversation, save a message, and emit it to both users', async () => {

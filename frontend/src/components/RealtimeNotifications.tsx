@@ -43,7 +43,7 @@ const RealtimeNotifications: React.FC = () => {
     );
 
     socket.on("chat_message", (message: ChatMessage) => {
-      addRealtimeMessage(message);
+      addRealtimeMessage(message, Number(user.id));
     });
 
     return () => {
