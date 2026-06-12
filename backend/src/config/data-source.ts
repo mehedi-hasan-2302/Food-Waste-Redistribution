@@ -24,6 +24,6 @@ export const AppDataSource = new DataSource({
       : __dirname + '/../migrations/*.ts'
   ],
   synchronize: false,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  ssl: config.db.ssl ? { rejectUnauthorized: config.db.sslRejectUnauthorized } : false,
   logging: !isProduction,
 })
