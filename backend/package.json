@@ -2,6 +2,10 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "dist/app.js",
+  "engines": {
+    "node": ">=20 <23",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec \"npx ts-node\" src/server.ts",
     "build": "tsc",

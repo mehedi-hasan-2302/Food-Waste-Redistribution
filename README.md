@@ -33,7 +33,7 @@ Food-Waste-Redistribution/
 
 Requirements:
 
-- Node.js 20+
+- Node.js 20+. Use the version in `.nvmrc`.
 - npm
 - A PostgreSQL database. Supabase Postgres works well.
 - Cloudinary credentials if you want real image uploads.
