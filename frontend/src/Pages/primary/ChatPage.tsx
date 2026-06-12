@@ -6,10 +6,12 @@ import { useChatStore } from "@/store/chatStore";
 import { MessageCircle, Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const ChatPage: React.FC = () => {
   const token = useAuthStore((state) => state.token);
   const currentUser = useAuthStore((state) => state.user);
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     conversations,
     userSearchResults,
@@ -32,6 +34,17 @@ const ChatPage: React.FC = () => {
       fetchConversations(token);
     }
   }, [fetchConversations, token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const userId = Number(searchParams.get("userId"));
+    if (!Number.isInteger(userId) || userId <= 0) return;
+
+    openConversationWithUser(token, userId).then(() => {
+      setSearchParams({});
+    });
+  }, [openConversationWithUser, searchParams, setSearchParams, token]);
 
   const activeRecipientId = useMemo(() => {
     return activeConversation?.otherUser.id;

@@ -103,7 +103,7 @@ export async function getMessagesForConversation(
   const conversation = await getConversationForParticipant(conversationId, userId)
   const messages = await messageRepo.find({
     where: { conversation: { ConversationID: conversation.ConversationID } },
-    relations: ['sender', 'recipient'],
+    relations: ['conversation', 'sender', 'recipient'],
     order: { CreatedAt: 'ASC' },
     take: limit,
     skip: offset,
@@ -221,7 +221,7 @@ async function formatConversation(conversation: ChatConversation, currentUserId:
   const [lastMessage, unreadCount] = await Promise.all([
     messageRepo.findOne({
       where: { conversation: { ConversationID: conversation.ConversationID } },
-      relations: ['sender', 'recipient'],
+      relations: ['conversation', 'sender', 'recipient'],
       order: { CreatedAt: 'DESC' },
     }),
     messageRepo.count({

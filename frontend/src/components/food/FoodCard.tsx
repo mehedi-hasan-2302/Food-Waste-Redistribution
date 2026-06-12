@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import OrderModal from "@/components/OrderModal";
 import { useAuthStore } from "@/store/authStore";
-import { Clock, MapPin, ShoppingCart, Heart, User } from "lucide-react";
+import { Clock, MapPin, MessageCircle, ShoppingCart, Heart, User } from "lucide-react";
 import { formatCookedDate } from "@/lib/fooddataFormatter";
 
 interface FoodCardProps {
@@ -17,7 +17,13 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
   const isItemExpired = +new Date(item.PickupWindowEnd) <= +new Date();
   const isDonation = item.IsDonation;
   const userRole = useAuthStore((state) => state.user?.role);
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+  const donorUserId = item.donor?.UserID;
+  const canMessageDonor =
+    isAuthenticated &&
+    donorUserId !== undefined &&
+    String(donorUserId) !== currentUserId;
 
   const canTakeAction =
     isAuthenticated &&
@@ -152,7 +158,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-auto pt-2">
+        <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
           {/* View Details Link */}
           <Button
             asChild
@@ -208,6 +214,19 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
               disabled
             >
               {isDonation ? "For Charities Only" : "For Buyers Only"}
+            </Button>
+          )}
+          {canMessageDonor && (
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="col-span-2 border-highlight text-highlight hover:bg-highlight hover:text-white"
+            >
+              <Link to={`/chat?userId=${donorUserId}`}>
+                <MessageCircle className="w-4 h-4 mr-1" />
+                Message seller
+              </Link>
             </Button>
           )}
         </div>

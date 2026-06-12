@@ -119,6 +119,9 @@ describe('chatService', () => {
 
     const result = await chatService.getConversationsForUser(1)
 
+    expect(mockMessageRepository.findOne).toHaveBeenCalledWith(expect.objectContaining({
+      relations: ['conversation', 'sender', 'recipient'],
+    }))
     expect(result).toEqual([expect.objectContaining({
       id: 10,
       unreadCount: 2,
@@ -152,6 +155,9 @@ describe('chatService', () => {
 
     const result = await chatService.getMessagesForConversation(1, 10)
 
+    expect(mockMessageRepository.find).toHaveBeenCalledWith(expect.objectContaining({
+      relations: ['conversation', 'sender', 'recipient'],
+    }))
     expect(mockMessageRepository.save).toHaveBeenCalledWith([expect.objectContaining({
       IsRead: true,
     })])
