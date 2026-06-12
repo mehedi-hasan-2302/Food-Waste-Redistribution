@@ -4,6 +4,10 @@ export interface ChatUserSummary {
   role: string;
 }
 
+export interface ChatSearchUser extends ChatUserSummary {
+  email: string;
+}
+
 export interface ChatConversation {
   id: number;
   otherUser: ChatUserSummary;

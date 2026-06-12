@@ -4,6 +4,21 @@ import { sendErrorResponse, sendSuccessResponse } from '../utils/responseHelper'
 import { BaseError, UnauthorizedActionError } from '../utils/errors'
 import logger from '../utils/logger'
 
+export async function searchUsers(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return sendErrorResponse(res, 'User not authenticated', 401)
+    }
+
+    const query = String(req.query.q || '')
+    const limit = Number(req.query.limit) || 10
+    const users = await chatService.searchChatUsers(req.user.UserID, query, limit)
+    return sendSuccessResponse(res, users, 'Users retrieved successfully')
+  } catch (error: any) {
+    return handleChatError(res, error)
+  }
+}
+
 export async function getConversations(req: Request, res: Response) {
   try {
     if (!req.user) {

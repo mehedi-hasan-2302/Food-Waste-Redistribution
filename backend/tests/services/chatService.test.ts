@@ -17,6 +17,7 @@ const mockMessageRepository = {
 
 const mockUserRepository = {
   findOneBy: jest.fn(),
+  find: jest.fn(),
 }
 
 jest.mock('../../src/config/data-source', () => ({
@@ -59,6 +60,35 @@ describe('chatService', () => {
       if (UserID === 2) return Promise.resolve(userTwo)
       return Promise.resolve(null)
     })
+  })
+
+  it('should search active chat users by name or email', async () => {
+    mockUserRepository.find.mockResolvedValue([userTwo])
+
+    const result = await chatService.searchChatUsers(1, 'user', 5)
+
+    expect(mockUserRepository.find).toHaveBeenCalledWith(expect.objectContaining({
+      take: 5,
+      select: {
+        UserID: true,
+        Username: true,
+        Email: true,
+        Role: true,
+      },
+    }))
+    expect(result).toEqual([{
+      id: 2,
+      username: 'user2',
+      email: undefined,
+      role: UserRole.DONOR_SELLER,
+    }])
+  })
+
+  it('should return no search results for very short queries', async () => {
+    const result = await chatService.searchChatUsers(1, 'u')
+
+    expect(result).toEqual([])
+    expect(mockUserRepository.find).not.toHaveBeenCalled()
   })
 
   it('should create a conversation, save a message, and emit it to both users', async () => {

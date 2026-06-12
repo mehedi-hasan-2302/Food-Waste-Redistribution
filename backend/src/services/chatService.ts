@@ -1,7 +1,8 @@
 import { AppDataSource } from '../config/data-source'
+import { ILike, Not } from 'typeorm'
 import { ChatConversation } from '../models/ChatConversation'
 import { ChatMessage } from '../models/ChatMessage'
-import { User } from '../models/User'
+import { AccountStatus, User } from '../models/User'
 import { UserDoesNotExistError, UnauthorizedActionError, ValidationError } from '../utils/errors'
 import { emitToUser } from './notificationService'
 
@@ -12,6 +13,46 @@ const userRepo = AppDataSource.getRepository(User)
 export interface SendChatMessageInput {
   recipientId: number
   message: string
+}
+
+export async function searchChatUsers(currentUserId: number, query: string, limit = 10) {
+  const searchTerm = query?.trim()
+  if (!searchTerm || searchTerm.length < 2) {
+    return []
+  }
+
+  const safeLimit = Math.min(Math.max(limit || 10, 1), 20)
+  const users = await userRepo.find({
+    where: [
+      {
+        UserID: Not(currentUserId),
+        AccountStatus: AccountStatus.ACTIVE,
+        IsEmailVerified: true,
+        Username: ILike(`%${searchTerm}%`),
+      },
+      {
+        UserID: Not(currentUserId),
+        AccountStatus: AccountStatus.ACTIVE,
+        IsEmailVerified: true,
+        Email: ILike(`%${searchTerm}%`),
+      },
+    ],
+    select: {
+      UserID: true,
+      Username: true,
+      Email: true,
+      Role: true,
+    },
+    order: { Username: 'ASC' },
+    take: safeLimit,
+  })
+
+  return users.map(user => ({
+    id: user.UserID,
+    username: user.Username,
+    email: user.Email,
+    role: user.Role,
+  }))
 }
 
 export async function getOrCreateConversation(currentUserId: number, otherUserId: number) {

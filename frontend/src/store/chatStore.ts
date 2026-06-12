@@ -1,14 +1,17 @@
 import { create } from "zustand";
 import axios from "axios";
 import { API_CONFIG, API_ENDPOINTS } from "@/config/api";
-import type { ChatConversation, ChatMessage } from "@/lib/types/chat";
+import type { ChatConversation, ChatMessage, ChatSearchUser } from "@/lib/types/chat";
 
 interface ChatState {
   conversations: ChatConversation[];
+  userSearchResults: ChatSearchUser[];
   activeConversation: ChatConversation | null;
   messages: ChatMessage[];
   isLoading: boolean;
+  isSearchingUsers: boolean;
   error: string | null;
+  searchUsers: (token: string, query: string) => Promise<void>;
   fetchConversations: (token: string) => Promise<void>;
   openConversationWithUser: (token: string, userId: number) => Promise<void>;
   fetchMessages: (token: string, conversationId: number) => Promise<void>;
@@ -29,10 +32,37 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
+  userSearchResults: [],
   activeConversation: null,
   messages: [],
   isLoading: false,
+  isSearchingUsers: false,
   error: null,
+
+  searchUsers: async (token, query) => {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 2) {
+      set({ userSearchResults: [], error: null });
+      return;
+    }
+
+    set({ isSearchingUsers: true, error: null });
+    try {
+      const response = await axios.get(
+        `${API_CONFIG.baseURL}${API_ENDPOINTS.chat.searchUsers}?q=${encodeURIComponent(trimmedQuery)}`,
+        authHeader(token)
+      );
+      set({
+        userSearchResults: response.data.data || [],
+        isSearchingUsers: false,
+      });
+    } catch (error) {
+      set({
+        error: getErrorMessage(error, "Failed to search users"),
+        isSearchingUsers: false,
+      });
+    }
+  },
 
   fetchConversations: async (token) => {
     set({ isLoading: true, error: null });
@@ -65,6 +95,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set((state) => ({
         activeConversation: conversation,
         conversations: upsertConversation(state.conversations, conversation),
+        userSearchResults: [],
         isLoading: false,
       }));
       await get().fetchMessages(token, conversation.id);

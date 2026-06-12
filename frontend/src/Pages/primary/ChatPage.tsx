@@ -12,17 +12,19 @@ const ChatPage: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
   const {
     conversations,
+    userSearchResults,
     activeConversation,
     messages,
-    isLoading,
+    isSearchingUsers,
     error,
+    searchUsers,
     fetchConversations,
     fetchMessages,
     openConversationWithUser,
     sendMessage,
   } = useChatStore();
 
-  const [userIdInput, setUserIdInput] = useState("");
+  const [userSearchInput, setUserSearchInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
 
   useEffect(() => {
@@ -35,15 +37,17 @@ const ChatPage: React.FC = () => {
     return activeConversation?.otherUser.id;
   }, [activeConversation]);
 
-  const handleStartConversation = async (event: FormEvent) => {
+  const handleSearchUsers = async (event: FormEvent) => {
     event.preventDefault();
     if (!token) return;
 
-    const userId = Number(userIdInput);
-    if (!Number.isInteger(userId) || userId <= 0) return;
+    await searchUsers(token, userSearchInput);
+  };
 
+  const handleStartConversation = async (userId: number) => {
+    if (!token) return;
     await openConversationWithUser(token, userId);
-    setUserIdInput("");
+    setUserSearchInput("");
   };
 
   const handleSelectConversation = async (conversationId: number) => {
@@ -73,23 +77,40 @@ const ChatPage: React.FC = () => {
             <h1 className="text-xl font-semibold">Messages</h1>
           </div>
 
-          <form onSubmit={handleStartConversation} className="mb-5 flex gap-2">
+          <form onSubmit={handleSearchUsers} className="mb-3 flex gap-2">
             <Input
-              type="number"
-              min="1"
-              value={userIdInput}
-              onChange={(event) => setUserIdInput(event.target.value)}
-              placeholder="User ID"
+              type="search"
+              value={userSearchInput}
+              onChange={(event) => setUserSearchInput(event.target.value)}
+              placeholder="Search people"
               className="bg-white"
             />
             <Button
               type="submit"
               className="bg-highlight text-white hover:bg-brand-green"
-              disabled={isLoading}
+              disabled={isSearchingUsers || userSearchInput.trim().length < 2}
             >
-              Start
+              Search
             </Button>
           </form>
+
+          {userSearchResults.length > 0 && (
+            <div className="mb-5 space-y-2 rounded-md border border-dark-text/10 bg-pale-mint/40 p-2">
+              {userSearchResults.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => handleStartConversation(user.id)}
+                  className="w-full rounded-md bg-white px-3 py-2 text-left text-sm transition hover:bg-pale-mint"
+                >
+                  <span className="block font-medium">{user.username}</span>
+                  <span className="block text-xs text-dark-text/60">
+                    {user.email} · {user.role}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {error && (
             <p className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -198,7 +219,7 @@ const ChatPage: React.FC = () => {
               <MessageCircle className="mb-4 h-12 w-12 text-highlight" />
               <h2 className="text-xl font-semibold">Choose a conversation</h2>
               <p className="mt-2 max-w-md text-sm text-dark-text/65">
-                Select an existing chat or start one with a user ID.
+                Select an existing chat or search for a person to start one.
               </p>
             </div>
           )}
