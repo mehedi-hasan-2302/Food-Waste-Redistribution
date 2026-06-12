@@ -72,6 +72,11 @@ export function initializeWebSocket(server: HTTPServer) {
   })
 }
 
+export function emitToUser(userId: number, event: string, payload: unknown): void {
+  if (!io) return
+  io.to(`user_${userId}`).emit(event, payload)
+}
+
 export interface NotificationPayload {
   recipientId: number
   type: NotificationType | string

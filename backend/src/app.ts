@@ -3,6 +3,7 @@ import cors from 'cors'
 import { AppDataSource } from './config/data-source'
 import { config } from './config/env'
 import authRoutes from './routes/authRoutes'
+import chatRoutes from './routes/chatRoutes'
 import healthRoutes from './routes/healthRoutes'
 import profileRoutes from './routes/profileRoutes'
 import foodListingRoutes from './routes/foodListingRoutes'
@@ -37,6 +38,7 @@ export async function createApp(): Promise<Express> {
 
   app.use('/api/health', healthRoutes)
   app.use('/api/auth', authRoutes)
+  app.use('/api/chat', chatRoutes)
   app.use('/api/profile', profileRoutes)
   app.use('/api/food-listings', foodListingRoutes)
   app.use('/api/orders', orderRoutes)
