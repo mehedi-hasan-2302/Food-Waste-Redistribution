@@ -83,12 +83,15 @@ const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   const modalTitle = isDonation ? "Claim Donation" : "Confirm Your Order";
+  const modalDescription = isDonation
+    ? "You are requesting this donation:"
+    : "You are placing an order for:";
   const notesLabel = isDonation
     ? "Claim Notes (Optional)"
     : "Order Notes (Optional)";
   const buttonText = isDonation
     ? "Confirm Claim"
-    : `Place Order for $${listingPrice}`;
+    : `Place Order for Tk ${listingPrice}`;
 
 
   return (
@@ -98,7 +101,7 @@ const OrderModal: React.FC<OrderModalProps> = ({
         <DialogHeader>
           <DialogTitle className="text-2xl">{modalTitle}</DialogTitle>
           <DialogDescription>
-            You are placing an order for:{" "}
+            {modalDescription}{" "}
             <span className="font-semibold">{listingTitle}</span>
           </DialogDescription>
         </DialogHeader>
