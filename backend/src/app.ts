@@ -3,6 +3,7 @@ import cors from 'cors'
 import { AppDataSource } from './config/data-source'
 import { config } from './config/env'
 import authRoutes from './routes/authRoutes'
+import healthRoutes from './routes/healthRoutes'
 import profileRoutes from './routes/profileRoutes'
 import foodListingRoutes from './routes/foodListingRoutes'
 import orderRoutes from './routes/orderRoutes'
@@ -12,6 +13,7 @@ import adminRoutes from './routes/adminRoutes'
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
+import logger from './utils/logger'
 
 export async function createApp(): Promise<Express> {
   try {
@@ -19,7 +21,7 @@ export async function createApp(): Promise<Express> {
       await AppDataSource.initialize()
     }
   } catch (error) {
-    console.error('Database connection error:', error)
+    logger.error('Database connection error', { error })
   }
   
   const app = express()
@@ -33,11 +35,7 @@ export async function createApp(): Promise<Express> {
   app.use(mongoSanitize());
   app.use(xss());
 
-  // Health check endpoint
-  app.get('/api/health', (req: Request, res: Response) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
-  })
-
+  app.use('/api/health', healthRoutes)
   app.use('/api/auth', authRoutes)
   app.use('/api/profile', profileRoutes)
   app.use('/api/food-listings', foodListingRoutes)
@@ -53,7 +51,7 @@ export async function createApp(): Promise<Express> {
 
   // Error handler
   app.use((error: any, req: Request, res: Response, next: any) => {
-    console.error('Server error:', error)
+    logger.error('Server error', { error })
     res.status(500).json({ 
       error: 'Internal server error',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
@@ -73,7 +71,7 @@ export default async function handler(req: any, res: any) {
     }
     return app(req, res)
   } catch (error) {
-    console.error('Handler error:', error)
+    logger.error('Handler error', { error })
     res.status(500).json({ 
       error: 'Server initialization failed',
       message: process.env.NODE_ENV === 'development' ? error : 'Internal server error'
