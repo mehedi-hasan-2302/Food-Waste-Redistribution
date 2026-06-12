@@ -6,7 +6,8 @@ import type { FoodItem } from "@/lib/types/FoodItem";
 import { formatCookedDate } from "@/lib/fooddataFormatter";
 import OrderModal from "@/components/OrderModal";
 import { useAuthStore } from "@/store/authStore";
-import { Heart, MapPin, Clock, User, Calendar, Utensils, Info } from "lucide-react";
+import { Heart, MapPin, Clock, User, Calendar, Utensils, Info, MessageCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface FoodItemDetailProps {
     item: FoodItem;
@@ -17,7 +18,13 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
     const isItemExpired = +new Date(item.PickupWindowEnd) <= +new Date();
     const isDonation = item.IsDonation;
     const userRole = useAuthStore((state) => state.user?.role);
+    const currentUserId = useAuthStore((state) => state.user?.id);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+    const donorUserId = item.donor?.UserID;
+    const canMessageDonor =
+      isAuthenticated &&
+      donorUserId !== undefined &&
+      String(donorUserId) !== currentUserId;
     
     const canTakeAction =
       isAuthenticated &&
@@ -199,7 +206,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
             </div>
 
             {/* Action Button */}
-            <div className="w-full sm:max-w-xs">
+            <div className="grid w-full gap-3 sm:max-w-xs">
               {!isItemExpired ? (
                 !isAuthenticated ? (
                   <Button
@@ -239,6 +246,19 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
                   disabled
                 >
                   Unavailable
+                </Button>
+              )}
+              {canMessageDonor && (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="border-highlight text-highlight hover:bg-highlight hover:text-white"
+                >
+                  <Link to={`/chat?userId=${donorUserId}`}>
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message seller
+                  </Link>
                 </Button>
               )}
             </div>
