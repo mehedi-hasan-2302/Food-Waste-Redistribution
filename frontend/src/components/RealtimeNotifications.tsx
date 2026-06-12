@@ -1,5 +1,7 @@
 import { API_CONFIG } from "@/config/api";
+import type { ChatMessage } from "@/lib/types/chat";
 import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/chatStore";
 import {
   type RealtimeNotificationPayload,
   useNotificationStore,
@@ -14,6 +16,7 @@ const RealtimeNotifications: React.FC = () => {
   const addRealtimeNotification = useNotificationStore(
     (state) => state.addRealtimeNotification
   );
+  const addRealtimeMessage = useChatStore((state) => state.addRealtimeMessage);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -39,10 +42,14 @@ const RealtimeNotifications: React.FC = () => {
       }
     );
 
+    socket.on("chat_message", (message: ChatMessage) => {
+      addRealtimeMessage(message);
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [addRealtimeNotification, token, user]);
+  }, [addRealtimeMessage, addRealtimeNotification, token, user]);
 
   return null;
 };

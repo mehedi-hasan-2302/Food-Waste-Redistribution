@@ -17,6 +17,7 @@ import UserProfilePage from './Pages/primary/UserProfilePage.tsx';
 import FoodManagementPage from './Pages/primary/FoodManagementPage.tsx';
 import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 import AdminPage from './Pages/primary/AdminPage.tsx';
+import ChatPage from './Pages/primary/ChatPage.tsx';
 
 const router = createBrowserRouter([
   {
@@ -66,6 +67,16 @@ const router = createBrowserRouter([
           {
             index: true,
             element: <FoodManagementPage />,
+          },
+        ],
+      },
+      {
+        path: "chat",
+        element: <ProtectedRoute allowedRoles={["DONOR_SELLER", "CHARITY_ORG", "BUYER", "INDEP_DELIVERY", "ORG_VOLUNTEER", "ADMIN"]} />,
+        children: [
+          {
+            index: true,
+            element: <ChatPage />,
           },
         ],
       },

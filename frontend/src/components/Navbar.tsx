@@ -1,4 +1,4 @@
-import { Menu, Sparkles, X } from "lucide-react";
+import { MessageCircle, Menu, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -102,6 +102,16 @@ const Navbar: React.FC = () => {
       <div className="hidden lg:flex items-center gap-3">
       {isLoggedIn ? (
         <div className="flex items-center gap-3">
+        <Button
+          asChild
+          variant="ghost"
+          className="text-white hover:bg-light-beige hover:text-dark-text"
+        >
+          <Link to="/chat">
+            <MessageCircle className="h-4 w-4" />
+            Chat
+          </Link>
+        </Button>
         <NotificationBell />
         <UserAvatarDropdown onLogout={handleLogout} />
         </div>
@@ -184,6 +194,19 @@ const Navbar: React.FC = () => {
             </Link>
           </SheetClose>
           ))}
+
+          {isLoggedIn && (
+          <SheetClose asChild>
+            <Link
+            to="/chat"
+            className="flex items-center gap-2 rounded-lg px-4 py-3 text-base font-medium text-dark-text hover:bg-brand-green/10 hover:text-brand-green transition-all duration-200"
+            onClick={() => setIsSheetOpen(false)}
+            >
+            <MessageCircle className="h-4 w-4" />
+            Chat
+            </Link>
+          </SheetClose>
+          )}
           
           <div className="pt-6 mt-6 border-t border-dark-text/10">
           {isLoggedIn ? (
