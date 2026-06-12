@@ -25,6 +25,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
       isAuthenticated &&
       donorUserId !== undefined &&
       String(donorUserId) !== currentUserId;
+    const contactLabel = isDonation ? "Message donor" : "Message seller";
     
     const canTakeAction =
       isAuthenticated &&
@@ -257,7 +258,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
                 >
                   <Link to={`/chat?userId=${donorUserId}`}>
                     <MessageCircle className="w-4 h-4 mr-2" />
-                    Message seller
+                    {contactLabel}
                   </Link>
                 </Button>
               )}
