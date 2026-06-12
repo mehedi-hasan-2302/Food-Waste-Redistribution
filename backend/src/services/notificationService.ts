@@ -3,6 +3,7 @@ import { Server as HTTPServer } from 'http'
 import { AppDataSource } from '../config/data-source'
 import { Notification, NotificationType } from '../models/Notification'
 import { User } from '../models/User'
+import { config } from '../config/env'
 import logger from '../utils/logger'
 
 // Initialize services
@@ -16,7 +17,7 @@ let io: SocketIOServer
 export function initializeWebSocket(server: HTTPServer) {
   io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "*",
+      origin: config.cors.origin,
       methods: ["GET", "POST"]
     }
   })
