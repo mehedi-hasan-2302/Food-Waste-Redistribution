@@ -8,17 +8,20 @@ dotenv.config()
 
 const PORT = config.port
 
-const server = createServer(createApp)
-initializeWebSocket(server)
+async function startServer() {
+  try {
+    const app = await createApp()
+    const server = createServer(app)
+    initializeWebSocket(server)
 
-
-createApp()
-  .then((app) => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`)
       console.log('WebSocket server initialized')
     })
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error('Failed to start server:', err)
-  })
+    process.exit(1)
+  }
+}
+
+void startServer()

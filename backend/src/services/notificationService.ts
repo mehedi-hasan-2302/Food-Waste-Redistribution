@@ -2,7 +2,9 @@ import { Server as SocketIOServer } from 'socket.io'
 import { Server as HTTPServer } from 'http'
 import { AppDataSource } from '../config/data-source'
 import { Notification, NotificationType } from '../models/Notification'
-import { User } from '../models/User'
+import { User, UserRole } from '../models/User'
+import { config } from '../config/env'
+import { authenticateToken } from './authTokenService'
 import logger from '../utils/logger'
 
 // Initialize services
@@ -13,30 +15,59 @@ const userRepo = AppDataSource.getRepository(User)
 // WebSocket server
 let io: SocketIOServer
 
+interface SocketUser {
+  id: number
+  role: UserRole
+}
+
+function getHandshakeToken(authToken: unknown): string | null {
+  return typeof authToken === 'string' && authToken.trim() ? authToken : null
+}
+
 export function initializeWebSocket(server: HTTPServer) {
   io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "*",
+      origin: config.cors.origin,
       methods: ["GET", "POST"]
     }
   })
 
+  io.use(async (socket, next) => {
+    try {
+      const token = getHandshakeToken(socket.handshake.auth?.token)
+      if (!token) {
+        return next(new Error('Authentication required'))
+      }
+
+      const user = await authenticateToken(token)
+
+      socket.data.user = {
+        id: user.UserID,
+        role: user.Role
+      } satisfies SocketUser
+
+      next()
+    } catch (error) {
+      logger.warn('WebSocket authentication failed', { socketId: socket.id })
+      next(new Error('Authentication required'))
+    }
+  })
+
   io.on('connection', (socket) => {
-    logger.info('User connected to WebSocket', { socketId: socket.id })
+    const socketUser = socket.data.user as SocketUser
+    socket.join(`user_${socketUser.id}`)
+    logger.info('User connected to WebSocket', { userId: socketUser.id, socketId: socket.id })
 
-    socket.on('join_user_room', (userId: number) => {
-      socket.join(`user_${userId}`)
-      logger.info('User joined notification room', { userId, socketId: socket.id })
-    })
-
-    // Delivery personnel joins delivery room
-    socket.on('join_delivery_room', (deliveryPersonId: number) => {
-      socket.join(`delivery_${deliveryPersonId}`)
-      logger.info('Delivery person joined delivery room', { deliveryPersonId, socketId: socket.id })
-    })
+    if (socketUser.role === UserRole.INDEP_DELIVERY || socketUser.role === UserRole.ORG_VOLUNTEER) {
+      socket.join(`delivery_${socketUser.id}`)
+      logger.info('Delivery person joined delivery room', {
+        deliveryPersonId: socketUser.id,
+        socketId: socket.id
+      })
+    }
 
     socket.on('disconnect', () => {
-      logger.info('User disconnected from WebSocket', { socketId: socket.id })
+      logger.info('User disconnected from WebSocket', { userId: socketUser.id, socketId: socket.id })
     })
   })
 }

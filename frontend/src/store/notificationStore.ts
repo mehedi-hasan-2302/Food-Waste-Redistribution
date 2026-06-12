@@ -5,6 +5,15 @@ import { toast } from "react-toastify";
 import { API_CONFIG } from "@/config/api";
 import type { Notification } from "@/lib/types/notification";
 
+export interface RealtimeNotificationPayload {
+  id: number;
+  type: string;
+  message: string;
+  referenceId?: number;
+  timestamp?: string | Date;
+  data?: unknown;
+}
+
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
@@ -12,12 +21,41 @@ interface NotificationState {
   fetchNotifications: (token: string) => Promise<void>;
   markAsRead: (token: string, notificationId: number) => Promise<void>;
   markAllAsRead: (token: string) => Promise<void>;
+  addRealtimeNotification: (payload: RealtimeNotificationPayload) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
   unreadCount: 0,
   isLoading: false,
+
+  addRealtimeNotification: (payload) => {
+    const incomingNotification: Notification = {
+      NotificationID: payload.id,
+      NotificationType: payload.type,
+      Message: payload.message,
+      ReferenceID: payload.referenceId ?? 0,
+      createdAt: payload.timestamp
+        ? new Date(payload.timestamp).toISOString()
+        : new Date().toISOString(),
+      IsRead: false,
+    };
+
+    set((state) => {
+      const alreadyExists = state.notifications.some(
+        (notification) =>
+          notification.NotificationID === incomingNotification.NotificationID
+      );
+
+      if (alreadyExists) return state;
+
+      const notifications = [incomingNotification, ...state.notifications];
+      return {
+        notifications,
+        unreadCount: notifications.filter((n) => !n.IsRead).length,
+      };
+    });
+  },
 
   fetchNotifications: async (token) => {
     // No need to set loading true for background fetches
