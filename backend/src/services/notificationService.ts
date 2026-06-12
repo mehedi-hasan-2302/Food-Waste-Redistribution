@@ -1,10 +1,10 @@
 import { Server as SocketIOServer } from 'socket.io'
 import { Server as HTTPServer } from 'http'
-import jwt from 'jsonwebtoken'
 import { AppDataSource } from '../config/data-source'
 import { Notification, NotificationType } from '../models/Notification'
-import { AccountStatus, User, UserRole } from '../models/User'
+import { User, UserRole } from '../models/User'
 import { config } from '../config/env'
+import { authenticateToken } from './authTokenService'
 import logger from '../utils/logger'
 
 // Initialize services
@@ -39,22 +39,7 @@ export function initializeWebSocket(server: HTTPServer) {
         return next(new Error('Authentication required'))
       }
 
-      const decoded = jwt.verify(token, config.jsonToken.secret) as any
-      const user = await userRepo.findOne({
-        where: { UserID: decoded.id },
-        select: ['UserID', 'Role', 'IsEmailVerified', 'AccountStatus', 'TokenValidFrom']
-      })
-
-      if (!user || !user.IsEmailVerified || user.AccountStatus !== AccountStatus.ACTIVE) {
-        return next(new Error('Authentication required'))
-      }
-
-      if (decoded.tokenValidFrom && user.TokenValidFrom) {
-        const tokenValidFromTime = user.TokenValidFrom.getTime()
-        if (decoded.tokenValidFrom < tokenValidFromTime) {
-          return next(new Error('Authentication required'))
-        }
-      }
+      const user = await authenticateToken(token)
 
       socket.data.user = {
         id: user.UserID,
