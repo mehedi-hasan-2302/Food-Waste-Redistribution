@@ -3,6 +3,7 @@ import { User, UserRole } from '../models/User'
 import { FoodListing, ListingStatus } from '../models/FoodListing'
 import { validateFoodListingData } from '../validations/foodListingValidation'
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '../utils/imageUploads'
+import { calculateDynamicListingPrice } from '../utils/listingPricing'
 import {
   UserDoesNotExistError,
   ProfileNotFoundError,
@@ -53,6 +54,27 @@ export interface SearchParams {
 
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
+
+function addDynamicPriceFields<T extends { listing: Record<string, unknown> }>(
+  baseData: T,
+  listing: FoodListing
+): T {
+  const priceResult = calculateDynamicListingPrice(listing);
+
+  if (priceResult.discountApplied <= 0) {
+    return baseData;
+  }
+
+  return {
+    ...baseData,
+    listing: {
+      ...baseData.listing,
+      originalPrice: priceResult.originalPrice,
+      currentPrice: priceResult.currentPrice,
+      discountApplied: priceResult.discountApplied
+    }
+  };
+}
 
 // Helper function to validate and parse filter parameters
 function validateFilters(filters: FoodListingFilters): {
@@ -204,8 +226,10 @@ export async function getAllFoodListings(filters: FoodListingFilters, offset: nu
     .leftJoinAndSelect('listing.donor', 'donor')
     .leftJoinAndSelect('donor.donorSeller', 'donorSeller')
     .where('listing.ListingStatus = :status', { status: ListingStatus.ACTIVE })
-    .andWhere('listing.PickupWindowEnd > :now', { now: new Date() })
-    .andWhere('listing.CreatedAt > :now', { now: new Date(Date.now() - 24 * 60 * 60 * 1000) });
+    .andWhere('listing.PickupWindowEnd > :currentTime', { currentTime: new Date() })
+    .andWhere('listing.CreatedAt > :createdAfter', {
+      createdAfter: new Date(Date.now() - 24 * 60 * 60 * 1000)
+    });
 
   if (filters.foodType) {
     queryBuilder.andWhere('listing.FoodType ILIKE :foodType', { 
@@ -272,37 +296,7 @@ export async function getAllFoodListings(filters: FoodListingFilters, offset: nu
       }
     }
 
-    if (!listing.IsDonation && (listing.Price ?? 0) > 0) {
-      const price = listing.Price ?? 0;
-      const now = Date.now();
-      const hoursElapsed = (now - listing.CookedDate.getTime()) / (1000 * 60 * 60);
-      
-      const pickupWindowEnd = listing.PickupWindowEnd ? new Date(listing.PickupWindowEnd).getTime() : 0;
-      const isWithinPickupWindow = pickupWindowEnd > 0 && now <= pickupWindowEnd;
-      
-      // Check if food is within 24 hours of cooking time
-      const hoursFromCooking = (now - listing.CookedDate.getTime()) / (1000 * 60 * 60);
-      const isWithin24Hours = hoursFromCooking <= 24;
-      
-      if (isWithinPickupWindow && isWithin24Hours) {
-        // Fixed discount: 5tk per hour elapsed from cooking time
-        const discountAmount = Math.min(hoursFromCooking * 5, price * 0.5);
-        const dynamicPrice = Math.max(price - discountAmount, price * 0.5);
-        const discountRate = ((price - dynamicPrice) / price) * 100;
-        
-        return {
-          ...baseData,
-          listing: {
-            ...baseData.listing,
-            originalPrice: price,
-            currentPrice: Math.round(dynamicPrice * 100) / 100,
-            discountApplied: Math.round(discountRate)
-          }
-        }
-      }
-    }
-    
-    return baseData
+    return addDynamicPriceFields(baseData, listing)
   })
 
   return formattedListings
@@ -362,40 +356,22 @@ export async function getFoodListingById(listingId: number) {
       donorId: listing.donor.UserID
     });
 
-    const cookedDateTimestamp = new Date(listing.CookedDate).getTime();
-    const currentTimestamp = Date.now();
-    const hoursFromCooking = (currentTimestamp - cookedDateTimestamp) / (1000 * 60 * 60);
+    const priceResult = calculateDynamicListingPrice(listing);
 
-    const price = parseFloat((listing.Price ?? 0).toString());
+    if (priceResult.discountApplied > 0) {
+      logger.info('Applied dynamic pricing', {
+        listingId,
+        originalPrice: priceResult.originalPrice,
+        discountedPrice: priceResult.currentPrice,
+        discountRate: priceResult.discountApplied
+      });
 
-    // applying discount if within pickup window and not a donation
-    if (!listing.IsDonation && price > 0) {
-      const pickupWindowEnd = listing.PickupWindowEnd ? new Date(listing.PickupWindowEnd).getTime() : 0;
-      const isWithinPickupWindow = pickupWindowEnd > 0 && currentTimestamp <= pickupWindowEnd;
-      
-      // Check if food is within 24 hours of cooking time
-      const isWithin24Hours = hoursFromCooking <= 24;
-      
-      if (isWithinPickupWindow && isWithin24Hours) {
-        // Fixed discount: 5tk per hour elapsed from cooking time
-        const discountAmount = Math.min(hoursFromCooking * 5, price * 0.5);
-        const discountedPrice = Math.max(price - discountAmount, price * 0.5);
-        const discountRate = ((price - discountedPrice) / price);
-        
-        logger.info('Applied dynamic pricing', { 
-          listingId, 
-          originalPrice: price, 
-          discountedPrice: Math.round(discountedPrice * 100) / 100,
-          discountRate: Math.round(discountRate * 100),
-          hoursFromCooking: hoursFromCooking.toFixed(2)
-        });
-        return {
-          ...listing,
-          originalPrice: price,
-          currentPrice: Math.round(discountedPrice * 100) / 100, 
-          discountApplied: Math.round(discountRate * 100) 
-        };
-      }
+      return {
+        ...listing,
+        originalPrice: priceResult.originalPrice,
+        currentPrice: priceResult.currentPrice,
+        discountApplied: priceResult.discountApplied
+      };
     }
 
     return listing;
@@ -690,8 +666,10 @@ export async function searchFoodListings(
     .leftJoinAndSelect('listing.donor', 'donor')
     .leftJoinAndSelect('donor.donorSeller', 'donorSeller')
     .where('listing.ListingStatus = :status', { status: ListingStatus.ACTIVE })
-    .andWhere('listing.PickupWindowEnd > :now', { now: new Date() })
-    .andWhere('listing.CreatedAt > :now', { now: new Date(Date.now() - 24 * 60 * 60 * 1000) });
+    .andWhere('listing.PickupWindowEnd > :currentTime', { currentTime: new Date() })
+    .andWhere('listing.CreatedAt > :createdAfter', {
+      createdAfter: new Date(Date.now() - 24 * 60 * 60 * 1000)
+    });
 
   if (searchParams.q) {
     queryBuilder.andWhere(
@@ -780,38 +758,7 @@ export async function searchFoodListings(
       }
     }
 
-    // dynamic pricing for non-donation items
-    if (!listing.IsDonation && (listing.Price ?? 0) > 0) {
-      const price = listing.Price ?? 0;
-      const now = Date.now();
-      const hoursFromCooking = (now - listing.CookedDate.getTime()) / (1000 * 60 * 60);
-      
-      // applying discount if within pickup window
-      const pickupWindowEnd = listing.PickupWindowEnd ? new Date(listing.PickupWindowEnd).getTime() : 0;
-      const isWithinPickupWindow = pickupWindowEnd > 0 && now <= pickupWindowEnd;
-      
-      // Check if food is within 24 hours of cooking time
-      const isWithin24Hours = hoursFromCooking <= 24;
-      
-      if (isWithinPickupWindow && isWithin24Hours) {
-        // Fixed discount: 5tk per hour elapsed from cooking time
-        const discountAmount = Math.min(hoursFromCooking * 5, price * 0.5);
-        const dynamicPrice = Math.max(price - discountAmount, price * 0.5);
-        const discountRate = ((price - dynamicPrice) / price) * 100;
-        
-        return {
-          ...baseData,
-          listing: {
-            ...baseData.listing,
-            originalPrice: price,
-            currentPrice: Math.round(dynamicPrice * 100) / 100,
-            discountApplied: Math.round(discountRate)
-          }
-        }
-      }
-    }
-    
-    return baseData
+    return addDynamicPriceFields(baseData, listing)
   });
 
   return {

@@ -13,6 +13,7 @@ import {
 import { generateUniqueCode } from '../utils/codeGenerator'
 import { sendRealTimeNotification, sendDeliveryNotification } from '../services/notificationService'
 import { DonorSeller } from '../models/DonorSeller'
+import { calculateDynamicListingPrice } from '../utils/listingPricing'
 import logger from '../utils/logger'
 
 
@@ -75,6 +76,8 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       Price: true,
       IsDonation: true,
       ListingStatus: true,
+      CookedDate: true,
+      PickupWindowEnd: true,
       PickupLocation: true,
       CreatedAt: true,
       donor: {
@@ -97,15 +100,19 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
     throw new ValidationError('Cannot order inactive food listing')
   }
 
+  const priceResult = calculateDynamicListingPrice(listing)
+
+  if (priceResult.isExpired) {
+    logger.warn('Attempt to order expired listing', { buyerId, listingId })
+    throw new ValidationError('Cannot order expired food listing')
+  }
+
   if (listing.donor.UserID === buyerId) {
     logger.warn('User tried to order own listing', { buyerId, listingId })
     throw new ValidationError('Cannot order your own food listing')
   }
 
-  const hoursElapsed = (Date.now() - listing.CreatedAt.getTime()) / (1000 * 60 * 60)
-  const discountRate = Math.min(hoursElapsed * 0.05, 0.5)
-  const currentPrice = (listing.Price ?? 0) * (1 - discountRate)
-  const finalPrice = orderData.proposedPrice || currentPrice
+  const finalPrice = priceResult.currentPrice
 
   let deliveryFee = 0
   let assignedDeliveryPersonnel = null
