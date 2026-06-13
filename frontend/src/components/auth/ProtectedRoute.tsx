@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "react-toastify";
@@ -21,6 +22,36 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   );
 
   const isAuthenticated = !!token && !!user;
+  const redirect = !isLoading && !isAuthenticated
+    ? {
+        to: "/login",
+        message: "You must be logged in to access this page.",
+        type: "error" as const,
+      }
+    : !isLoading && user && !allowedRoles.includes(user.role)
+      ? {
+          to: "/",
+          message: "You do not have permission to view this page.",
+          type: "error" as const,
+        }
+      : !isLoading && profileMustBeComplete && user && !user.isProfileComplete
+        ? {
+            to: "/profile",
+            message: "Please complete your profile to access this feature.",
+            type: "warn" as const,
+          }
+        : null;
+
+  useEffect(() => {
+    if (!redirect) return;
+
+    if (redirect.type === "warn") {
+      toast.warn(redirect.message);
+      return;
+    }
+
+    toast.error(redirect.message);
+  }, [redirect]);
 
   // Show a loading spinner while Zustand is rehydrating the auth state from storage
   if (isLoading) {
@@ -32,18 +63,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    toast.error("You must be logged in to access this page.");
     return <Navigate to="/login" replace />;
   }
 
   // 2. Check if the user's role is in the list of allowed roles
   if (!allowedRoles.includes(user.role)) {
-    toast.error("You do not have permission to view this page.");
     return <Navigate to="/" replace />;
   }
 
   if (profileMustBeComplete && !user.isProfileComplete) {
-    toast.warn("Please complete your profile to access this feature.");
     return <Navigate to="/profile" replace />;
   }
 

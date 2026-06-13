@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import {
   BarChart,
-    FileCheck,
-    Pizza,
-Users,
+  ClipboardList,
+  FileCheck,
+  Pizza,
+  Users,
 } from "lucide-react";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import UserManagement from "@/components/admin/UserManagement";
 import VerificationRequests from "@/components/admin/VerificationRequests";
 import ListingManagement from "@/components/admin/ListingManagement";
+import OrderOversight from "@/components/admin/OrderOversight";
 
 const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -18,6 +20,7 @@ const AdminPage: React.FC = () => {
     verifications: <VerificationRequests />,
     users: <UserManagement />,
     listings: <ListingManagement />,
+    orders: <OrderOversight />,
   };
 
   const tabIcons: Record<string, React.ReactNode> = {
@@ -25,6 +28,7 @@ const AdminPage: React.FC = () => {
     verifications: <FileCheck className="h-5 w-5 mr-2" />,
     users: <Users className="h-5 w-5 mr-2" />,
     listings: <Pizza className="h-5 w-5 mr-2" />,
+    orders: <ClipboardList className="h-5 w-5 mr-2" />,
   };
 
   return (

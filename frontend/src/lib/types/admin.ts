@@ -70,8 +70,69 @@ export interface DashboardStats {
   pendingDeliveryVerifications: number;
   totalFoodListings: number;
   activeFoodListings: number;
+  totalOrders: number;
+  pendingOrders: number;
+  totalDonationClaims: number;
+  pendingDonationClaims: number;
+  activeDeliveries: number;
   totalComplaints: number;
   pendingComplaints: number;
+}
+
+interface AdminFlowUser {
+  UserID: number;
+  Username: string;
+  Email?: string;
+  PhoneNumber?: string;
+}
+
+interface AdminFlowListing {
+  ListingID: number;
+  Title: string;
+  IsDonation: boolean;
+}
+
+interface AdminFlowDelivery {
+  DeliveryID: number;
+  DeliveryStatus: "SCHEDULED" | "IN_TRANSIT" | "DELIVERED" | "FAILED";
+  DeliveryPersonnelType: "INDEPENDENT" | "ORG_VOLUNTEER";
+  independentDeliveryPersonnel?: AdminFlowUser | null;
+  organizationVolunteer?: {
+    OrgVolunteerID: number;
+    VolunteerName: string;
+    VolunteerContactPhone: string;
+    user?: AdminFlowUser | null;
+  } | null;
+}
+
+export interface AdminOrder {
+  OrderID: number;
+  OrderStatus: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  PaymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  PaymentMethod?: "PAY_ON_DELIVERY" | "PAY_ON_PICKUP";
+  DeliveryType: "HOME_DELIVERY" | "SELF_PICKUP";
+  FinalPrice: string | number;
+  DeliveryFee: string | number;
+  CreatedAt: string;
+  buyer: AdminFlowUser;
+  seller: AdminFlowUser;
+  listing: AdminFlowListing;
+  delivery?: AdminFlowDelivery | null;
+}
+
+export interface AdminDonationClaim {
+  ClaimID: number;
+  ClaimStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "COMPLETED";
+  DeliveryType: "HOME_DELIVERY" | "SELF_PICKUP";
+  charityOrg: AdminFlowUser;
+  donor: AdminFlowUser;
+  listing: AdminFlowListing;
+  delivery?: AdminFlowDelivery | null;
+}
+
+export interface AdminOrderOversight {
+  orders: AdminOrder[];
+  donationClaims: AdminDonationClaim[];
 }
 
 export interface ProcessVerificationPayload {

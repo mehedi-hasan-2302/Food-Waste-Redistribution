@@ -3,7 +3,15 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuthStore } from "./authStore";
 import { API_CONFIG } from "@/config/api";
-import type { AdminUser, DashboardStats, FoodListing, PendingCharity, PendingDelivery, ProcessVerificationPayload } from "@/lib/types/admin";
+import type {
+  AdminOrderOversight,
+  AdminUser,
+  DashboardStats,
+  FoodListing,
+  PendingCharity,
+  PendingDelivery,
+  ProcessVerificationPayload,
+} from "@/lib/types/admin";
 
 const getAuthHeaders = () => {
     const token = useAuthStore.getState().token;
@@ -18,6 +26,7 @@ interface AdminState {
   pendingDelivery: PendingDelivery[];
   users: AdminUser[];
   foodListings: FoodListing[];
+  orderOversight: AdminOrderOversight;
   isLoading: boolean;
   error: string | null;
 
@@ -31,6 +40,7 @@ interface AdminState {
   suspendUser: (userId: number, reason: string) => Promise<boolean>;
   reactivateUser: (userId: number) => Promise<boolean>;
   getAllFoodListings: () => Promise<void>;
+  getOrderOversight: () => Promise<void>;
   removeFoodListing: (listingId: number, reason: string) => Promise<boolean>;
 }
 
@@ -41,6 +51,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   pendingDelivery: [],
   users: [],
   foodListings: [],
+  orderOversight: {
+    orders: [],
+    donationClaims: [],
+  },
   isLoading: false,
   error: null,
 
@@ -213,6 +227,25 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       toast.error(errorMessage);
       set({ isLoading: false, error: errorMessage });
       return false;
+    }
+  },
+
+  getOrderOversight: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(
+        `${API_CONFIG.baseURL}/api/admin/orders`,
+        { headers: getAuthHeaders() }
+      );
+      if (response.data.status === "success") {
+        set({ orderOversight: response.data.data, isLoading: false });
+      }
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to fetch order oversight."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ isLoading: false, error: errorMessage });
     }
   },
 }));
