@@ -16,6 +16,17 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
   const placeholderImage = "https://placehold.co/400x300/D9E3DF/1A3F36?text=Food";
   const isItemExpired = +new Date(item.PickupWindowEnd) <= +new Date();
   const isDonation = item.IsDonation;
+  const hasDiscount =
+    !isDonation &&
+    (item.discountApplied ?? 0) > 0 &&
+    item.currentPrice !== undefined &&
+    item.currentPrice > 0 &&
+    item.currentPrice < item.Price;
+  const displayPrice =
+    hasDiscount && item.currentPrice !== undefined
+      ? item.currentPrice
+      : item.Price;
+  const originalPrice = item.originalPrice || item.Price;
   const userRole = useAuthStore((state) => state.user?.role);
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
@@ -51,10 +62,10 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
   };
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-highlight group bg-white">
+    <Card className="h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 border border-brand-green/15 hover:border-highlight group bg-white">
       {/* Image Section */}
       <div className="relative overflow-hidden">
-        <div className="aspect-[4/3] w-full">
+        <div className="aspect-[16/10] w-full">
           <img
             src={
               item.ImagePath && item.ImagePath !== "imagepath"
@@ -78,8 +89,8 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
               For Sale
             </Badge>
           )}
-          {item.discountApplied && item.discountApplied > 0 && (
-            <Badge className="bg-red-500 hover:bg-red-600 text-white shadow-lg animate-pulse">
+          {hasDiscount && (
+            <Badge className="bg-red-500 hover:bg-red-600 text-white shadow-lg">
               {item.discountApplied}% OFF
             </Badge>
           )}
@@ -100,9 +111,9 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
       </div>
 
       {/* Content Section */}
-      <CardContent className="flex-grow flex flex-col p-4 space-y-3">
+      <CardContent className="flex-grow flex flex-col p-5 space-y-3">
         {/* Title */}
-        <h3 className="font-serif text-lg font-semibold text-dark-text leading-tight line-clamp-2 group-hover:text-highlight transition-colors min-h-[3rem]">
+        <h3 className="font-serif text-lg font-semibold text-dark-text leading-tight line-clamp-2 group-hover:text-highlight transition-colors">
           {item.Title}
         </h3>
 
@@ -123,18 +134,18 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
               <span className="text-xl font-bold text-green-600">Free</span>
             ) : (
               <div className="flex items-center gap-2">
-                {item.currentPrice && item.currentPrice !== item.Price ? (
+                {hasDiscount ? (
                   <>
                     <span className="text-xl font-bold text-red-600">
-                      ৳{item.currentPrice}
+                      Tk {displayPrice}
                     </span>
                     <span className="text-sm text-gray-500 line-through">
-                      ৳{item.originalPrice || item.Price}
+                      Tk {originalPrice}
                     </span>
                   </>
                 ) : (
                   <span className="text-xl font-bold text-dark-text">
-                    ৳{item.Price}
+                    Tk {item.Price}
                   </span>
                 )}
               </div>
@@ -159,13 +170,13 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
+        <div className="grid grid-cols-1 gap-2 mt-auto pt-2">
           {/* View Details Link */}
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="flex-1 text-xs hover:bg-highlight hover:text-white transition-colors"
+            className="w-full hover:bg-highlight hover:text-white transition-colors"
           >
             <Link to={`/food/${item.ListingID}`}>
               View Details
@@ -177,7 +188,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 text-gray-500 border-gray-300 cursor-not-allowed bg-gray-50"
+              className="w-full text-gray-500 border-gray-300 cursor-not-allowed bg-gray-50"
               disabled
             >
               Unavailable
@@ -186,7 +197,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
             <Button
               asChild
               size="sm"
-              className="flex-1 bg-brand-green hover:bg-brand-green/90 text-white shadow-md hover:shadow-lg transition-all"
+              className="w-full bg-brand-green hover:bg-brand-green/90 text-white shadow-md hover:shadow-lg transition-all"
             >
               <Link to="/login">
                 Login to {isDonation ? "Claim" : "Order"}
@@ -197,11 +208,11 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
               listingId={item.ListingID}
               listingTitle={item.Title}
               isDonation={isDonation}
-              listingPrice={item.currentPrice || item.Price}
+              listingPrice={displayPrice}
             >
               <Button
                 size="sm"
-                className="flex-1 bg-brand-green hover:bg-brand-green/90 text-white shadow-md hover:shadow-lg transition-all"
+                className="w-full bg-brand-green hover:bg-brand-green/90 text-white shadow-md hover:shadow-lg transition-all"
               >
                 <ShoppingCart className="w-4 h-4 mr-1" />
                 {isDonation ? "Claim" : "Order"}
@@ -211,7 +222,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 text-gray-500 border-gray-300 cursor-not-allowed bg-gray-50"
+              className="w-full text-gray-500 border-gray-300 cursor-not-allowed bg-gray-50"
               disabled
             >
               {isDonation ? "For Charities Only" : "For Buyers Only"}
@@ -222,7 +233,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ item }) => {
               asChild
               size="sm"
               variant="outline"
-              className="col-span-2 border-highlight text-highlight hover:bg-highlight hover:text-white"
+              className="w-full border-highlight text-highlight hover:bg-highlight hover:text-white"
             >
               <Link to={`/chat?userId=${donorUserId}`}>
                 <MessageCircle className="w-4 h-4 mr-1" />

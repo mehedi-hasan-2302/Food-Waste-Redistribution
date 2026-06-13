@@ -17,6 +17,17 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
     const placeholderImage = "https://placehold.co/600x450/D9E3DF/1A3F36?text=Food+Image";
     const isItemExpired = +new Date(item.PickupWindowEnd) <= +new Date();
     const isDonation = item.IsDonation;
+    const hasDiscount =
+      !isDonation &&
+      (item.discountApplied ?? 0) > 0 &&
+      item.currentPrice !== undefined &&
+      item.currentPrice > 0 &&
+      item.currentPrice < item.Price;
+    const displayPrice =
+      hasDiscount && item.currentPrice !== undefined
+        ? item.currentPrice
+        : item.Price;
+    const originalPrice = item.originalPrice || item.Price;
     const userRole = useAuthStore((state) => state.user?.role);
     const currentUserId = useAuthStore((state) => state.user?.id);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
@@ -126,7 +137,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
                   </Badge>
                 )}
                 
-                {item.discountApplied && item.discountApplied > 0 && (
+                {hasDiscount && (
                   <Badge className="bg-red-500 text-white shadow-lg animate-pulse">
                     {item.discountApplied}% OFF
                   </Badge>
@@ -167,21 +178,21 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
                 <div className="text-3xl font-bold text-green-600">Free</div>
               ) : (
                 <div className="flex items-center space-x-3">
-                  {item.currentPrice && item.currentPrice !== item.Price ? (
+                  {hasDiscount ? (
                     <>
                       <span className="text-3xl font-bold text-red-600">
-                        ৳{item.currentPrice}
+                        Tk {displayPrice}
                       </span>
                       <span className="text-xl text-gray-500 line-through">
-                        ৳{item.originalPrice || item.Price}
+                        Tk {originalPrice}
                       </span>
                       <Badge className="bg-red-100 text-red-700">
-                        Save ৳{((item.originalPrice || item.Price) - item.currentPrice).toFixed(2)}
+                        Save Tk {(originalPrice - displayPrice).toFixed(2)}
                       </Badge>
                     </>
                   ) : (
                     <span className="text-3xl font-bold text-dark-text">
-                      ৳{item.Price}
+                      Tk {item.Price}
                     </span>
                   )}
                 </div>
@@ -222,7 +233,7 @@ const FoodItemDetail: React.FC<FoodItemDetailProps> = ({ item }) => {
                 ) : canTakeAction ? (
                   <OrderModal
                     listingId={item.ListingID}
-                    listingPrice={item.currentPrice || item.Price}
+                    listingPrice={displayPrice}
                     isDonation={item.IsDonation}
                     listingTitle={item.Title}
                   >
