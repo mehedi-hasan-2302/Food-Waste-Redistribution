@@ -26,6 +26,11 @@ export enum PaymentStatus {
   REFUNDED= 'REFUNDED',
 }
 
+export enum PaymentMethod {
+  PAY_ON_DELIVERY = 'PAY_ON_DELIVERY',
+  PAY_ON_PICKUP = 'PAY_ON_PICKUP',
+}
+
 export enum DeliveryType {
   SELF_PICKUP   = 'SELF_PICKUP',
   HOME_DELIVERY = 'HOME_DELIVERY',
@@ -62,6 +67,9 @@ export class Order {
 
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
   PaymentStatus!: PaymentStatus
+
+  @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.PAY_ON_DELIVERY })
+  PaymentMethod!: PaymentMethod
 
   @Column({ type: 'enum', enum: DeliveryType })
   DeliveryType!: DeliveryType

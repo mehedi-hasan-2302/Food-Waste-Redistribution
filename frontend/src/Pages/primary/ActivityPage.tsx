@@ -110,6 +110,23 @@ const getMoney = (item: any) => {
   return total > 0 ? `Tk ${total}` : null;
 };
 
+const getPaymentMethod = (item: any) =>
+  item.PaymentMethod ||
+  item.paymentMethod ||
+  item.order?.PaymentMethod ||
+  item.order?.paymentMethod;
+
+const formatPaymentMethod = (paymentMethod?: string) => {
+  switch (paymentMethod) {
+    case "PAY_ON_DELIVERY":
+      return "Pay on delivery";
+    case "PAY_ON_PICKUP":
+      return "Pay at pickup";
+    default:
+      return null;
+  }
+};
+
 const getOrderId = (item: any) => item.OrderID || item.order?.OrderID;
 
 const getClaimId = (item: any) => item.ClaimID || item.claim?.ClaimID;
@@ -232,6 +249,7 @@ const ActivityPage: React.FC = () => {
                     {section.items.map((item) => {
                       const pickupCode = getPickupCode(item);
                       const money = getMoney(item);
+                      const paymentMethod = formatPaymentMethod(getPaymentMethod(item));
                       const status = getStatus(item);
                       const deliveryStatus = getDeliveryStatus(item);
                       const orderId = getOrderId(item);
@@ -274,6 +292,7 @@ const ActivityPage: React.FC = () => {
                           </div>
                           <div className="mt-3 grid gap-2 text-sm text-dark-text/70 sm:grid-cols-3">
                             {money && <p>Total: {money}</p>}
+                            {paymentMethod && <p>Payment: {paymentMethod}</p>}
                             {item.DeliveryType || item.order?.DeliveryType || item.claim?.DeliveryType ? (
                               <p>
                                 Delivery:{" "}

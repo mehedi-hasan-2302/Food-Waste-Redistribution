@@ -1,7 +1,7 @@
 import { AppDataSource } from '../config/data-source'
 import { User, UserRole } from '../models/User'
 import { FoodListing, ListingStatus } from '../models/FoodListing'
-import { Order, OrderStatus, PaymentStatus, DeliveryType } from '../models/Order'
+import { Order, OrderStatus, PaymentStatus, DeliveryType, PaymentMethod } from '../models/Order'
 import { IndependentDelivery } from '../models/IndependentDelivery'
 import { Delivery, DeliveryStatus, DeliveryPersonnelType } from '../models/Delivery'
 import {
@@ -27,6 +27,7 @@ export interface CreateOrderInput {
   listingId: number
   deliveryType: DeliveryType
   deliveryAddress: string
+  paymentMethod?: PaymentMethod
   proposedPrice?: number 
   orderNotes?: string
 }
@@ -113,6 +114,22 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
   }
 
   const finalPrice = priceResult.currentPrice
+  const paymentMethod =
+    orderData.paymentMethod ||
+    (orderData.deliveryType === DeliveryType.SELF_PICKUP
+      ? PaymentMethod.PAY_ON_PICKUP
+      : PaymentMethod.PAY_ON_DELIVERY)
+
+  if (!Object.values(PaymentMethod).includes(paymentMethod)) {
+    throw new ValidationError('Invalid payment method')
+  }
+
+  if (
+    orderData.deliveryType === DeliveryType.SELF_PICKUP &&
+    paymentMethod !== PaymentMethod.PAY_ON_PICKUP
+  ) {
+    throw new ValidationError('Self pickup orders must use pay at pickup')
+  }
 
   let deliveryFee = 0
   let assignedDeliveryPersonnel = null
@@ -142,6 +159,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
   order.DeliveryFee = deliveryFee
   order.OrderStatus = OrderStatus.PENDING
   order.PaymentStatus = PaymentStatus.PENDING
+  order.PaymentMethod = paymentMethod
   order.DeliveryType = orderData.deliveryType
   order.DeliveryAddress = orderData.deliveryAddress
   order.PickupCode = pickupCode
@@ -206,6 +224,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
         foodPrice: listing.Price,
         deliveryFee: deliveryFee,
         finalPrice: finalPrice,
+        paymentMethod: paymentMethod,
         buyerName: listing.donor.Username,
         pickupCode: pickupCode
       }
@@ -223,7 +242,8 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       title: listing.Title,
       description: listing.Description,
       originalPrice: listing.Price,
-      finalPrice: finalPrice
+      finalPrice: finalPrice,
+      paymentMethod: paymentMethod
     },
     seller: {
       id: listing.donor.UserID,
@@ -249,6 +269,7 @@ export async function authorizePickup(sellerId: number, orderId: number, provide
       OrderStatus: true,
       DeliveryType: true,
       PaymentStatus: true,
+      PaymentMethod: true,
       seller: { 
         UserID: true,
         Username: true
@@ -353,6 +374,7 @@ export async function authorizePickup(sellerId: number, orderId: number, provide
     OrderID: updatedOrder.OrderID,
     OrderStatus: updatedOrder.OrderStatus,
     PaymentStatus: updatedOrder.PaymentStatus,
+    PaymentMethod: updatedOrder.PaymentMethod,
     DeliveryType: updatedOrder.DeliveryType,
     seller: {
       UserID: order.seller.UserID,
@@ -387,6 +409,7 @@ export async function completeDelivery(buyerId: number, orderId: number): Promis
       OrderID: true,
       OrderStatus: true,
       PaymentStatus: true,
+      PaymentMethod: true,
       seller: { 
         UserID: true,
         Username: true
@@ -466,6 +489,7 @@ export async function completeDelivery(buyerId: number, orderId: number): Promis
     OrderID: order.OrderID,
     OrderStatus: order.OrderStatus,
     PaymentStatus: order.PaymentStatus,
+    PaymentMethod: order.PaymentMethod,
     seller: {
       UserID: order.seller.UserID,
       Username: order.seller.Username
@@ -588,6 +612,7 @@ export async function getOrderById(userId: number, orderId: number): Promise<any
       OrderID: true,
       OrderStatus: true,
       PaymentStatus: true,
+      PaymentMethod: true,
       DeliveryType: true,
       DeliveryAddress: true,
       PickupCode: true,
@@ -648,6 +673,7 @@ export async function getMyOrders(buyerId: number, offset: number, limit: number
       OrderID: true,
       OrderStatus: true,
       PaymentStatus: true,
+      PaymentMethod: true,
       DeliveryType: true,
       FinalPrice: true,
       DeliveryFee: true,
@@ -688,6 +714,7 @@ export async function getMySales(sellerId: number, offset: number, limit: number
       OrderID: true,
       OrderStatus: true,
       PaymentStatus: true,
+      PaymentMethod: true,
       DeliveryType: true,
       FinalPrice: true,
       DeliveryFee: true,
@@ -731,6 +758,7 @@ export async function getMyDeliveries(deliveryPersonnelId: number, offset: numbe
       order: {
         OrderID: true,
         OrderStatus: true,
+        PaymentMethod: true,
         DeliveryAddress: true,
         PickupCode: true,
         FinalPrice: true,

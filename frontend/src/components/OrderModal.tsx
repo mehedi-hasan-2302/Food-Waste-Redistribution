@@ -8,7 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
-import type { CreateClaimPayload, CreateOrderPayload } from "@/lib/types/order";
+import type {
+  CreateClaimPayload,
+  CreateOrderPayload,
+  PaymentMethod,
+} from "@/lib/types/order";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +34,6 @@ interface OrderModalProps {
 }
 
 type DeliveryChoice = "HOME_DELIVERY" | "SELF_PICKUP";
-type PaymentChoice = "PAY_ON_DELIVERY" | "PAY_ON_PICKUP";
 
 const DELIVERY_FEE = 50;
 
@@ -49,15 +52,12 @@ const OrderModal: React.FC<OrderModalProps> = ({
   const [deliveryType, setDeliveryType] =
     useState<DeliveryChoice>("HOME_DELIVERY");
   const [paymentChoice, setPaymentChoice] =
-    useState<PaymentChoice>("PAY_ON_DELIVERY");
+    useState<PaymentMethod>("PAY_ON_DELIVERY");
   const [deliveryAddress, setDeliveryAddress] = useState(""); 
   const [orderNotes, setOrderNotes] = useState("");
   const deliveryFee =
     !isDonation && deliveryType === "HOME_DELIVERY" ? DELIVERY_FEE : 0;
   const estimatedTotal = listingPrice + deliveryFee;
-  const paymentLabel =
-    paymentChoice === "PAY_ON_DELIVERY" ? "Pay on delivery" : "Pay at pickup";
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!token) {
@@ -75,18 +75,13 @@ const OrderModal: React.FC<OrderModalProps> = ({
       const newClaim = await createClaim(String(listingId), claimDetails);
       success = !!newClaim;
     } else {
-    const combinedNotes = [
-      `Payment method: ${paymentLabel}`,
-      orderNotes.trim(),
-    ]
-      .filter(Boolean)
-      .join("\n");
     const orderDetails: CreateOrderPayload = {
       deliveryType,
       deliveryAddress:
         deliveryType === "HOME_DELIVERY" ? deliveryAddress : "SELF_PICKUP",
       proposedPrice: listingPrice,
-      orderNotes: combinedNotes,
+      paymentMethod: paymentChoice,
+      orderNotes: orderNotes.trim() || undefined,
     };
 
     const newOrder = await createOrder(String(listingId), orderDetails)
@@ -186,7 +181,7 @@ const OrderModal: React.FC<OrderModalProps> = ({
               <Label className="font-semibold">Payment Method</Label>
               <RadioGroup
                 value={paymentChoice}
-                onValueChange={(value) => setPaymentChoice(value as PaymentChoice)}
+                onValueChange={(value) => setPaymentChoice(value as PaymentMethod)}
                 className="mt-2 grid gap-3 sm:grid-cols-2"
               >
                 <Label
