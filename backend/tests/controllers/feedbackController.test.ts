@@ -4,6 +4,7 @@ import * as feedbackService from '../../src/services/feedbackService'
 import { sendErrorResponse, sendSuccessResponse } from '../../src/utils/responseHelper'
 import { UnauthorizedActionError, ValidationError } from '../../src/utils/errors'
 import { AccountStatus, User, UserRole } from '../../src/models/User'
+import { AdminActionStatus } from '../../src/models/FeedbackComplaint'
 
 jest.mock('../../src/services/feedbackService')
 jest.mock('../../src/utils/responseHelper')
@@ -56,7 +57,7 @@ describe('FeedbackController', () => {
     it('should submit a complaint', async () => {
       const result = {
         complaintId: 3,
-        status: 'PENDING',
+        status: AdminActionStatus.PENDING,
         orderId: 7
       }
       mockedFeedbackService.createComplaint.mockResolvedValue(result)
