@@ -60,9 +60,12 @@ export const useOrderStore = create<OrderState>((set) => ({
       );
 
       if (response.data && response.data.status === "success") {
-        toast.success("Order placed successfully!");
-
         const newOrder = response.data.data;
+        toast.success(
+          newOrder?.pickupCode
+            ? `Order placed. Pickup code: ${newOrder.pickupCode}`
+            : "Order placed successfully!"
+        );
         set((state) => ({
           myOrders: [newOrder, ...state.myOrders],
           isLoading: false,
@@ -93,8 +96,12 @@ export const useOrderStore = create<OrderState>((set) => ({
         }
       );
       if (response.data && response.data.status === "success") {
-        toast.success("Donation claimed successfully!");
         const newClaim = response.data.data;
+        toast.success(
+          newClaim?.pickupCode
+            ? `Donation claimed. Pickup code: ${newClaim.pickupCode}`
+            : "Donation claimed successfully!"
+        );
         set((state) => ({
           myOrders: [newClaim, ...state.myOrders],
           isLoading: false,

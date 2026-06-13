@@ -184,7 +184,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       await sendRealTimeNotification({
       recipientId: listing.donor.UserID,
       type: 'NEW_ORDER_RECEIVED',
-      message: `New order received for ${listing.Title}. Pickup code: ${pickupCode}`,
+      message: `New order received for ${listing.Title}. Ask the buyer or rider for their pickup code before releasing the food.`,
       referenceId: savedOrder.OrderID,
       priority: 'high',
       data: {
@@ -197,7 +197,7 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
       await sendRealTimeNotification({
       recipientId: buyerId,
       type: 'NEW_ORDER_RECEIVED',
-      message: `New order received for ${listing.Title}. Pickup code: ${pickupCode}`,
+      message: `Order placed for ${listing.Title}. Your pickup code is ${pickupCode}. Share it only when collecting the food.`,
       referenceId: savedOrder.OrderID,
       priority: 'high',
       data: {
@@ -206,7 +206,8 @@ export async function createOrder(buyerId: number, listingId: number, orderData:
         foodPrice: listing.Price,
         deliveryFee: deliveryFee,
         finalPrice: finalPrice,
-        buyerName: listing.donor.Username
+        buyerName: listing.donor.Username,
+        pickupCode: pickupCode
       }
     })
 

@@ -186,14 +186,13 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
   await sendRealTimeNotification({
     recipientId: listing.donor.UserID,
     type: 'DONATION_CLAIMED',
-    message: `Your donation "${listing.Title}" has been claimed by ${charityOrgUser.charityOrganization.OrganizationName}. Pickup code: ${pickupCode}`,
+    message: `Your donation "${listing.Title}" has been claimed by ${charityOrgUser.charityOrganization.OrganizationName}. Ask the charity or volunteer for their pickup code before releasing the food.`,
     referenceId: savedClaim.ClaimID,
     priority: 'high',
     data: {
       claimId: savedClaim.ClaimID,
       donationTitle: listing.Title,
       organizationName: charityOrgUser.charityOrganization.OrganizationName,
-      pickupCode: pickupCode,
       deliveryType: claimData.deliveryType
     }
   })
@@ -201,7 +200,7 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
   await sendRealTimeNotification({
     recipientId: charityOrgUserId,
     type: 'DONATION_CLAIMED',
-    message: `Donation claim created successfully for "${listing.Title}". Claim ID: ${savedClaim.ClaimID}`,
+    message: `Donation claim created for "${listing.Title}". Your pickup code is ${pickupCode}. Share it only when collecting the food.`,
     referenceId: savedClaim.ClaimID,
     priority: 'high',
     data: {

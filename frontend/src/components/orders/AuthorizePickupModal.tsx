@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { useAuthStore } from "@/store/authStore";
@@ -27,6 +27,13 @@ const AuthorizePickupModal: React.FC = () => {
 
   const entityId = modalProps?.orderId || modalProps?.claimId;
   const isDonation = !!modalProps?.claimId;
+  const pickupActor = isDonation ? "charity or volunteer" : "buyer or rider";
+
+  useEffect(() => {
+    if (!isOpen) {
+      setPickupCode("");
+    }
+  }, [isOpen]);
 
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -53,8 +60,8 @@ const AuthorizePickupModal: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Authorize Pickup</DialogTitle>
           <DialogDescription>
-            Enter the 8-character pickup code provided by the delivery person to
-            authorize this pickup.
+            Enter the 8-character pickup code provided by the {pickupActor}.
+            Release the food only after the code is accepted.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="py-4">
