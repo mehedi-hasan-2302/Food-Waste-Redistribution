@@ -4,6 +4,7 @@ import { User, UserRole } from '../models/User'
 import { FoodListing, ListingStatus } from '../models/FoodListing'
 import { DonationClaim, ClaimStatus, DonationDeliveryType } from '../models/DonationClaim'
 import { Delivery, DeliveryStatus, DeliveryPersonnelType } from '../models/Delivery'
+import { OrganizationVolunteer } from '../models/OrganizationVolunteer'
 import {
   UserDoesNotExistError,
   FoodListingNotFoundError,
@@ -18,6 +19,7 @@ const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
 const donationClaimRepo = AppDataSource.getRepository(DonationClaim)
 const deliveryRepo = AppDataSource.getRepository(Delivery)
+const orgVolunteerRepo = AppDataSource.getRepository(OrganizationVolunteer)
 
 export interface CreateDonationClaimInput {
   listingId: number
@@ -114,19 +116,18 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
     throw new ValidationError('There is already a pending claim for this donation')
   }
 
-  // let assignedVolunteer = null
+  let assignedVolunteer: OrganizationVolunteer | null = null
 
-  // if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY) {
-  //   if (!claimData.deliveryAddress) {
-  //     throw new ValidationError('Delivery address is required for home delivery')
-  //   }
+  if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY) {
+    if (!claimData.deliveryAddress) {
+      throw new ValidationError('Delivery address is required for home delivery')
+    }
 
-  //   const availableVolunteer = await findAvailableOrgVolunteer(charityOrgUser.charityOrganization.ProfileID)
-  //   if (!availableVolunteer) {
-  //     throw new ValidationError('No volunteers available for delivery in your organization')
-  //   }
-  //   assignedVolunteer = availableVolunteer
-  // }
+    assignedVolunteer = await findAvailableOrgVolunteer(charityOrgUser.charityOrganization.ProfileID)
+    if (!assignedVolunteer) {
+      throw new ValidationError('No active volunteers available for delivery in your organization')
+    }
+  }
 
   const pickupCode = generateUniqueCode()
 
@@ -145,36 +146,29 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
   const delivery = new Delivery()
   delivery.claim = savedClaim
   delivery.DeliveryPersonnelType = DeliveryPersonnelType.ORG_VOLUNTEER
+  if (assignedVolunteer) {
+    delivery.organizationVolunteer = assignedVolunteer
+  }
   delivery.DeliveryStatus = DeliveryStatus.SCHEDULED
 
   await deliveryRepo.save(delivery)
 
-
-  // if (claimData.deliveryType === DonationDeliveryType.HOME_DELIVERY && assignedVolunteer) {
-  //   const delivery = new Delivery()
-  //   delivery.claim = savedClaim
-  //   delivery.DeliveryPersonnelType = DeliveryPersonnelType.ORG_VOLUNTEER
-  //   delivery.organizationVolunteer = assignedVolunteer
-  //   delivery.DeliveryStatus = DeliveryStatus.SCHEDULED
-
-  //   await deliveryRepo.save(delivery)
-
-  
-  //   await sendDeliveryNotification(
-  //     charityOrgUser.UserID,
-  //     'NEW_DONATION_DELIVERY',
-  //     `New donation delivery assigned. Claim ID: ${savedClaim.ClaimID}. Pickup code: ${pickupCode}`,
-  //     savedClaim.ClaimID,
-  //     {
-  //       claimId: savedClaim.ClaimID,
-  //       pickupCode: pickupCode,
-  //       pickupLocation: listing.PickupLocation,
-  //       deliveryAddress: claimData.deliveryAddress,
-  //       donorPhone: listing.donor.PhoneNumber,
-  //       organizationName: charityOrgUser.charityOrganization.OrganizationName
-  //     }
-  //   )
-  // }
+  if (assignedVolunteer?.user?.UserID) {
+    await sendDeliveryNotification(
+      assignedVolunteer.user.UserID,
+      'NEW_DELIVERY_REQUEST',
+      `New donation delivery assigned for claim #${savedClaim.ClaimID}. Pickup code: ${pickupCode}`,
+      savedClaim.ClaimID,
+      {
+        claimId: savedClaim.ClaimID,
+        pickupCode: pickupCode,
+        pickupLocation: listing.PickupLocation,
+        deliveryAddress: claimData.deliveryAddress,
+        donorPhone: listing.donor.PhoneNumber,
+        organizationName: charityOrgUser.charityOrganization.OrganizationName
+      }
+    )
+  }
 
 
   await foodListingRepo.update(
@@ -227,7 +221,12 @@ export async function createDonationClaim(charityOrgUserId: number, listingId: n
       id: listing.donor.UserID,
       username: listing.donor.Username,
       phone: listing.donor.PhoneNumber
-    } 
+    },
+    assignedVolunteer: assignedVolunteer ? {
+      id: assignedVolunteer.OrgVolunteerID,
+      name: assignedVolunteer.VolunteerName,
+      phone: assignedVolunteer.VolunteerContactPhone
+    } : undefined
   }
 }
 
@@ -345,7 +344,11 @@ export async function completeDonationDelivery(charityOrgId: number, claimId: nu
     throw new ValidationError('Donation claim not found')
   }
 
-  if (!claim.delivery || claim.charityOrg?.UserID !== charityOrgId) {
+  const isCharityOrg = claim.charityOrg?.UserID === charityOrgId
+  const isAssignedVolunteer =
+    claim.delivery?.organizationVolunteer?.user?.UserID === charityOrgId
+
+  if (!claim.delivery || (!isCharityOrg && !isAssignedVolunteer)) {
     throw new UnauthorizedActionError('You are not assigned to this donation delivery')
   }
 
@@ -748,20 +751,19 @@ export async function getDonationStats(userId: number): Promise<any> {
   return stats
 }
 
-// async function findAvailableOrgVolunteer(charityOrgId: number): Promise<any> {
-//   const volunteer = await orgVolunteerRepo.findOne({
-//     where: { 
-//       charityOrg: { ProfileID: charityOrgId },
-//       IsActive: true
-//     },
-//     relations: ['user'],
-//     select: {
-//       OrgVolunteerID: true,
-//       VolunteerName: true,
-//       VolunteerContactPhone: true,
-//       user: { UserID: true }
-//     }
-//   })
-
-//   return volunteer
-// }
+async function findAvailableOrgVolunteer(charityOrgId: number) {
+  return orgVolunteerRepo.findOne({
+    where: {
+      charityOrg: { ProfileID: charityOrgId },
+      IsActive: true
+    },
+    relations: ['user'],
+    select: {
+      OrgVolunteerID: true,
+      VolunteerName: true,
+      VolunteerContactPhone: true,
+      IsActive: true,
+      user: { UserID: true, Username: true, PhoneNumber: true }
+    }
+  })
+}
