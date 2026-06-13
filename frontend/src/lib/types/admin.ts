@@ -135,6 +135,27 @@ export interface AdminOrderOversight {
   donationClaims: AdminDonationClaim[];
 }
 
+export interface AdminComplaint {
+  FeedbackID: number;
+  FeedbackType: "REVIEW" | "COMPLAINT" | "RATING";
+  RatingValue?: number | null;
+  Message?: string | null;
+  AdminNotes?: string | null;
+  AdminActionStatus: "PENDING" | "RESOLVED" | "DISMISSED";
+  submitter?: AdminFlowUser | null;
+  regarding?: AdminFlowUser | null;
+  listing?: AdminFlowListing | null;
+  order?: {
+    OrderID: number;
+  } | null;
+  claim?: {
+    ClaimID: number;
+  } | null;
+  delivery?: {
+    DeliveryID: number;
+  } | null;
+}
+
 export interface ProcessVerificationPayload {
   userId: number;
   type: "charity" | "delivery";

@@ -1,9 +1,7 @@
-// src/components/modals/GlobalModalManager.tsx
 import { useModalStore } from "@/store/modalStore";
 import AuthorizePickupModal from "@/components/orders/AuthorizePickupModal";
 import CompleteDeliveryModal from "@/components/orders/CompleteDeliveryModal";
-// Import other modals here as you create them
-// import AuthorizeDonationModal from "@/components/donations/AuthorizeDonationModal";
+import ReportIssueModal from "@/components/orders/ReportIssueModal";
 
 const GlobalModalManager: React.FC = () => {
   const modalType = useModalStore((state) => state.modalType);
@@ -15,13 +13,11 @@ const GlobalModalManager: React.FC = () => {
     case 'COMPLETE_DELIVERY':
       return <CompleteDeliveryModal />;
 
-    // case 'AUTHORIZE_DONATION':
-    //   return <AuthorizeDonationModal />;
-
-    // etc.
+    case 'REPORT_ISSUE':
+      return <ReportIssueModal />;
       
     default:
-      return null; // Render nothing if no modal is active
+      return null;
   }
 };
 

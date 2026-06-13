@@ -11,6 +11,7 @@ import orderRoutes from './routes/orderRoutes'
 import donationRoutes from './routes/donationRoutes'
 import notificationRoutes from './routes/notificationRoutes'
 import adminRoutes from './routes/adminRoutes'
+import feedbackRoutes from './routes/feedbackRoutes'
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
@@ -44,6 +45,7 @@ export async function createApp(): Promise<Express> {
   app.use('/api/orders', orderRoutes)
   app.use('/api/donations', donationRoutes)
   app.use('/api/notifications', notificationRoutes) 
+  app.use('/api/feedback', feedbackRoutes)
   app.use('/api/admin', adminRoutes) 
 
   // 404 handler

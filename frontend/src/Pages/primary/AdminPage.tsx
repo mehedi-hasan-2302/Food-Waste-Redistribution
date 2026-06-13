@@ -3,10 +3,12 @@ import {
   BarChart,
   ClipboardList,
   FileCheck,
+  MessageSquareWarning,
   Pizza,
   Users,
 } from "lucide-react";
 import { DashboardStats } from "@/components/admin/DashboardStats";
+import ComplaintManagement from "@/components/admin/ComplaintManagement";
 import UserManagement from "@/components/admin/UserManagement";
 import VerificationRequests from "@/components/admin/VerificationRequests";
 import ListingManagement from "@/components/admin/ListingManagement";
@@ -21,6 +23,7 @@ const AdminPage: React.FC = () => {
     users: <UserManagement />,
     listings: <ListingManagement />,
     orders: <OrderOversight />,
+    complaints: <ComplaintManagement />,
   };
 
   const tabIcons: Record<string, React.ReactNode> = {
@@ -29,6 +32,7 @@ const AdminPage: React.FC = () => {
     users: <Users className="h-5 w-5 mr-2" />,
     listings: <Pizza className="h-5 w-5 mr-2" />,
     orders: <ClipboardList className="h-5 w-5 mr-2" />,
+    complaints: <MessageSquareWarning className="h-5 w-5 mr-2" />,
   };
 
   return (

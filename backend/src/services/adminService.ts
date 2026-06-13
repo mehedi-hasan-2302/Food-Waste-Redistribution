@@ -511,7 +511,11 @@ export async function getAllComplaints(filters: any) {
   const queryBuilder = feedbackRepo
     .createQueryBuilder('feedback')
     .leftJoinAndSelect('feedback.submitter', 'submitter')
-    .leftJoinAndSelect('feedback.regardingUser', 'regardingUser')
+    .leftJoinAndSelect('feedback.regarding', 'regarding')
+    .leftJoinAndSelect('feedback.listing', 'listing')
+    .leftJoinAndSelect('feedback.order', 'order')
+    .leftJoinAndSelect('feedback.claim', 'claim')
+    .leftJoinAndSelect('feedback.delivery', 'delivery')
     .where('feedback.FeedbackType = :type', { type: 'COMPLAINT' })
 
   if (filters.status) {
@@ -521,7 +525,7 @@ export async function getAllComplaints(filters: any) {
   const complaints = await queryBuilder
     .skip(filters.offset || 0)
     .take(filters.limit || 20)
-    .orderBy('feedback.CreatedAt', 'DESC')
+    .orderBy('feedback.FeedbackID', 'DESC')
     .getMany()
 
   logger.info('Fetched all complaints', { filters })

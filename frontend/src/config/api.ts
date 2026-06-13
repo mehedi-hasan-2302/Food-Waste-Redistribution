@@ -72,6 +72,10 @@ export const API_ENDPOINTS = {
     markRead: (id: string | number) => `/api/notifications/${id}/read`,
     markAllRead: '/api/notifications/read-all',
   },
+  feedback: {
+    createComplaint: '/api/feedback/complaints',
+    myComplaints: '/api/feedback/complaints/my',
+  },
   chat: {
     searchUsers: '/api/chat/users/search',
     conversations: '/api/chat/conversations',
