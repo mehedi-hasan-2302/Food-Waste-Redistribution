@@ -241,14 +241,17 @@ const ActivityPage: React.FC = () => {
                         status === "PENDING" &&
                         (orderId || claimId);
                       const canCompleteOrder =
-                        (userRole === "BUYER" ||
-                          userRole === "INDEP_DELIVERY") &&
+                        userRole === "BUYER" &&
                         orderId &&
                         deliveryStatus === "IN_TRANSIT";
                       const canCompleteClaim =
                         (userRole === "CHARITY_ORG" ||
                           userRole === "ORG_VOLUNTEER") &&
                         claimId &&
+                        deliveryStatus === "IN_TRANSIT";
+                      const showRiderCompletionHint =
+                        userRole === "INDEP_DELIVERY" &&
+                        orderId &&
                         deliveryStatus === "IN_TRANSIT";
 
                       return (
@@ -285,6 +288,12 @@ const ActivityPage: React.FC = () => {
                               </p>
                             )}
                           </div>
+                          {showRiderCompletionHint && (
+                            <p className="mt-4 rounded-md bg-brand-green/5 p-3 text-sm text-dark-text/70">
+                              Delivery is in transit. The buyer confirms final
+                              completion after receiving the food.
+                            </p>
+                          )}
                           {(canAuthorizePickup ||
                             canCompleteOrder ||
                             canCompleteClaim) && (
