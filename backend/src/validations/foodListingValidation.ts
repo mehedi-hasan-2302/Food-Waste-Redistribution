@@ -236,9 +236,15 @@ export async function validateFoodListingData(data: any) {
   if (data.PickupWindowEnd) {
     const pickupEnd = new Date(data.PickupWindowEnd)
     const minPickupDuration = 60 * 60 * 1000 // 1 hour in milliseconds
+    const maxPickupDuration = 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+    const pickupDuration = pickupEnd.getTime() - pickupStart.getTime()
     
-    if (pickupEnd.getTime() - pickupStart.getTime() < minPickupDuration) {
+    if (pickupDuration < minPickupDuration) {
       throw new ValidationError('Pickup window must be at least 1 hour long')
+    }
+
+    if (pickupDuration > maxPickupDuration) {
+      throw new ValidationError('Pickup window cannot be longer than 6 hours')
     }
   }
 

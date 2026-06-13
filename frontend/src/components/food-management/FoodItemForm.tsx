@@ -14,6 +14,10 @@ interface FoodItemFormProps {
   isSaving?: boolean;
 }
 
+const PICKUP_DURATION_OPTIONS = [2, 4, 6];
+const MIN_PICKUP_DURATION_HOURS = 1;
+const MAX_PICKUP_DURATION_HOURS = 6;
+
 const FoodItemForm: React.FC<FoodItemFormProps> = ({
   initialData,
   onSubmit,
@@ -47,6 +51,14 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
   const now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   const minDateTime = now.toISOString().slice(0, 16);
+  const maxPickupEnd = pickupStart
+    ? toLocalDateTimeString(
+        new Date(
+          new Date(pickupStart).getTime() +
+            MAX_PICKUP_DURATION_HOURS * 60 * 60 * 1000
+        ).toISOString()
+      )
+    : undefined;
 
   useEffect(() => {
     if (initialData) {
@@ -103,6 +115,37 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
     }
   };
 
+  const handlePickupStartChange = (value: string) => {
+    setPickupStart(value);
+
+    if (pickupEnd && new Date(pickupEnd) <= new Date(value)) {
+      setPickupEnd("");
+    }
+  };
+
+  const applyPickupDuration = (hours: number) => {
+    if (!pickupStart) {
+      toast.info("Choose pickup start time first.");
+      return;
+    }
+
+    const nextPickupEnd = new Date(
+      new Date(pickupStart).getTime() + hours * 60 * 60 * 1000
+    );
+    setPickupEnd(toLocalDateTimeString(nextPickupEnd.toISOString()));
+  };
+
+  const getPickupDurationHours = () => {
+    if (!pickupStart || !pickupEnd) {
+      return null;
+    }
+
+    return (
+      (new Date(pickupEnd).getTime() - new Date(pickupStart).getTime()) /
+      (1000 * 60 * 60)
+    );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let formData: Partial<FoodItemFormData> = {
@@ -125,6 +168,17 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
         toast.error("Please fill out all required fields.");
         return;
       }
+
+      const pickupDurationHours = getPickupDurationHours();
+      if (
+        pickupDurationHours === null ||
+        pickupDurationHours < MIN_PICKUP_DURATION_HOURS ||
+        pickupDurationHours > MAX_PICKUP_DURATION_HOURS
+      ) {
+        toast.error("Pickup window must be between 1 and 6 hours.");
+        return;
+      }
+
       formData = {
         ...formData,
         FoodType: foodType,
@@ -191,22 +245,6 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
                 onChange={(e) => setFoodType(e.target.value)}
                 required
               />
-      <div>
-        <Label htmlFor="image">Food Image (Optional for update)</Label>
-        <Input
-          id="image"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-        />
-        {imagePreview && (
-          <img
-            src={imagePreview}
-            alt="Preview"
-            className="mt-2 h-32 w-auto object-cover rounded"
-          />
-        )}
-      </div>
             </div>
             <div>
               <Label htmlFor="pickupLocation">Pickup Location</Label>
@@ -217,6 +255,23 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="image">Food Image</Label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="mt-2 h-32 w-auto rounded object-cover"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -237,7 +292,7 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
                 id="pickupStart"
                 type="datetime-local"
                 value={pickupStart}
-                onChange={(e) => setPickupStart(e.target.value)}
+                onChange={(e) => handlePickupStartChange(e.target.value)}
                 required
                 min={cookedDate || minDateTime}
               />
@@ -251,7 +306,30 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({
                 onChange={(e) => setPickupEnd(e.target.value)}
                 required
                 min={pickupStart || minDateTime}
+                max={maxPickupEnd}
               />
+            </div>
+          </div>
+          <div className="rounded-md border border-brand-green/20 bg-brand-green/5 p-3">
+            <p className="text-sm font-medium text-dark-text">
+              Listings disappear after the pickup window ends.
+            </p>
+            <p className="mt-1 text-sm text-dark-text/70">
+              Keep the pickup window between 1 and 6 hours so buyers and
+              charities see only urgent, useful listings.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {PICKUP_DURATION_OPTIONS.map((hours) => (
+                <Button
+                  key={hours}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyPickupDuration(hours)}
+                >
+                  {hours}h window
+                </Button>
+              ))}
             </div>
           </div>
           <div className="flex items-center space-x-2 pt-4">
