@@ -583,7 +583,6 @@ export async function getMyDonationOffers(donorId: number, offset: number, limit
       ClaimID: true,
       ClaimStatus: true,
       DeliveryType: true,
-      PickupCode: true,
       charityOrg: {
         UserID: true,
         Username: true,

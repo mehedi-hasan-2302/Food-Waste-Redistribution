@@ -25,8 +25,6 @@ router.post('/:id/complete-delivery', requireRoles(["ORG_VOLUNTEER", "CHARITY_OR
 
 router.post('/:id/report-failure', requireRoles(["ORG_VOLUNTEER", "CHARITY_ORG"]), reportDonationDeliveryFailure)
 
-router.get('/:id', requireRoles(["DONOR_SELLER", "CHARITY_ORG", "ORG_VOLUNTEER"]), getDonationClaimById)
-
 router.get('/my/claims', requireRoles(["CHARITY_ORG"]), getMyDonationClaims)
 
 router.get('/my/offers', requireRoles(["DONOR_SELLER"]), getMyDonationOffers)
@@ -34,6 +32,8 @@ router.get('/my/offers', requireRoles(["DONOR_SELLER"]), getMyDonationOffers)
 router.get('/my/deliveries', requireRoles(["ORG_VOLUNTEER"]), getMyDonationDeliveries)
 
 router.get('/my/stats', requireRoles(["DONOR_SELLER", "CHARITY_ORG"]), getDonationStats)
+
+router.get('/:id', requireRoles(["DONOR_SELLER", "CHARITY_ORG", "ORG_VOLUNTEER"]), getDonationClaimById)
 
 router.put('/:id/cancel', requireRoles(["DONOR_SELLER", "CHARITY_ORG"]), cancelDonationClaim)
 

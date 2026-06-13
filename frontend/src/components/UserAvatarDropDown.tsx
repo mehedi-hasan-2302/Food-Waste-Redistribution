@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LayoutDashboard, ClipboardList } from "lucide-react";
 
 interface UserAvatarDropdownProps {
   onLogout: () => void; // Pass the logout handler from the Navbar
@@ -44,6 +44,12 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link to="/activity">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            <span>My Activity</span>
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link to="/profile">
             <User className="mr-2 h-4 w-4" />
