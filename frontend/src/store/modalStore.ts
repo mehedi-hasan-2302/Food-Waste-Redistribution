@@ -5,12 +5,17 @@ type ModalType =
   | "AUTHORIZE_PICKUP"
   | "COMPLETE_DELIVERY"
   | "REPORT_ISSUE"
+  | "RATE_EXPERIENCE"
   | "AUTHORIZE_DONATION"
   | "COMPLETE_DONATION";
 
 interface ModalProps {
   orderId?: number | string;
   claimId?: number | string;
+  ratingTargets?: Array<{
+    userId: number;
+    label: string;
+  }>;
 }
 
 interface ModalState {

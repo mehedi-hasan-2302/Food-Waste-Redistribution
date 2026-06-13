@@ -148,4 +148,59 @@ describe('FeedbackController', () => {
       )
     })
   })
+
+  describe('createRating', () => {
+    beforeEach(() => {
+      mockRequest.user = createMockUser(1)
+      mockRequest.body = {
+        orderId: '7',
+        regardingUserId: '4',
+        ratingValue: '5',
+        message: 'Great handoff.'
+      }
+    })
+
+    it('should submit a rating', async () => {
+      const result = {
+        ratingId: 9,
+        orderId: 7,
+        ratingValue: 5
+      }
+      mockedFeedbackService.createRating.mockResolvedValue(result)
+
+      await feedbackController.createRating(
+        mockRequest as Request,
+        mockResponse as Response
+      )
+
+      expect(mockedFeedbackService.createRating).toHaveBeenCalledWith(1, {
+        orderId: 7,
+        claimId: undefined,
+        regardingUserId: 4,
+        ratingValue: 5,
+        message: 'Great handoff.'
+      })
+      expect(mockedSendSuccessResponse).toHaveBeenCalledWith(
+        mockResponse,
+        result,
+        'Rating submitted successfully'
+      )
+    })
+
+    it('should return 401 when rating user is not authenticated', async () => {
+      mockRequest.user = undefined
+
+      await feedbackController.createRating(
+        mockRequest as Request,
+        mockResponse as Response
+      )
+
+      expect(mockedSendErrorResponse).toHaveBeenCalledWith(
+        mockResponse,
+        'User not authenticated',
+        401
+      )
+      expect(mockedFeedbackService.createRating).not.toHaveBeenCalled()
+    })
+  })
 })

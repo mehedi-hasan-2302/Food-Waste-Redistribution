@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
   },
   feedback: {
     createComplaint: '/api/feedback/complaints',
+    createRating: '/api/feedback/ratings',
     myComplaints: '/api/feedback/complaints/my',
   },
   chat: {
