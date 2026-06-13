@@ -254,6 +254,7 @@ const ActivityPage: React.FC = () => {
                       const deliveryStatus = getDeliveryStatus(item);
                       const orderId = getOrderId(item);
                       const claimId = getClaimId(item);
+                      const canReportIssue = !!orderId || !!claimId;
                       const canAuthorizePickup =
                         userRole === "DONOR_SELLER" &&
                         status === "PENDING" &&
@@ -315,7 +316,8 @@ const ActivityPage: React.FC = () => {
                           )}
                           {(canAuthorizePickup ||
                             canCompleteOrder ||
-                            canCompleteClaim) && (
+                            canCompleteClaim ||
+                            canReportIssue) && (
                             <div className="mt-4 flex flex-wrap gap-2">
                               {canAuthorizePickup && (
                                 <Button
@@ -353,6 +355,21 @@ const ActivityPage: React.FC = () => {
                                   }
                                 >
                                   Complete Donation
+                                </Button>
+                              )}
+                              {canReportIssue && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    openModal("REPORT_ISSUE", {
+                                      orderId: orderId || undefined,
+                                      claimId: claimId || undefined,
+                                    })
+                                  }
+                                >
+                                  Report Issue
                                 </Button>
                               )}
                             </div>

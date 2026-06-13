@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { useAuthStore } from "./authStore";
 import { API_CONFIG } from "@/config/api";
 import type {
+  AdminComplaint,
   AdminOrderOversight,
   AdminUser,
   DashboardStats,
@@ -20,17 +21,16 @@ const getAuthHeaders = () => {
 }
 
 interface AdminState {
-  // State
   dashboardStats: DashboardStats | null;
   pendingCharities: PendingCharity[];
   pendingDelivery: PendingDelivery[];
   users: AdminUser[];
   foodListings: FoodListing[];
   orderOversight: AdminOrderOversight;
+  complaints: AdminComplaint[];
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   getDashboardStats: () => Promise<void>;
   getPendingVerifications: () => Promise<void>;
   processVerification: (
@@ -41,11 +41,16 @@ interface AdminState {
   reactivateUser: (userId: number) => Promise<boolean>;
   getAllFoodListings: () => Promise<void>;
   getOrderOversight: () => Promise<void>;
+  getComplaints: () => Promise<void>;
+  resolveComplaint: (
+    complaintId: number,
+    action: "resolve" | "dismiss",
+    adminNotes?: string
+  ) => Promise<boolean>;
   removeFoodListing: (listingId: number, reason: string) => Promise<boolean>;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  // Initial State
   dashboardStats: null,
   pendingCharities: [],
   pendingDelivery: [],
@@ -55,10 +60,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     orders: [],
     donationClaims: [],
   },
+  complaints: [],
   isLoading: false,
   error: null,
 
-  // --- API Actions ---
   getDashboardStats: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -113,7 +118,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       toast.success(
         `Verification for user ${payload.userId} processed successfully!`
       );
-      // Refresh the list after processing
       get().getPendingVerifications();
       return true;
     } catch (error) {
@@ -154,7 +158,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         { headers: { ...getAuthHeaders(), "Content-Type": "application/json" } }
       );
       toast.success(`User ${userId} suspended successfully.`);
-      // Refresh the user list to show the status change
       get().getAllUsers();
       return true;
     } catch (error) {
@@ -246,6 +249,46 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         : "An unexpected error occurred.";
       toast.error(errorMessage);
       set({ isLoading: false, error: errorMessage });
+    }
+  },
+
+  getComplaints: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(
+        `${API_CONFIG.baseURL}/api/admin/complaints`,
+        { headers: getAuthHeaders() }
+      );
+      if (response.data.status === "success") {
+        set({ complaints: response.data.data, isLoading: false });
+      }
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to fetch complaints."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ isLoading: false, error: errorMessage });
+    }
+  },
+
+  resolveComplaint: async (complaintId, action, adminNotes) => {
+    set({ isLoading: true, error: null });
+    try {
+      await axios.put(
+        `${API_CONFIG.baseURL}/api/admin/complaints/${complaintId}/resolve`,
+        { action, adminNotes },
+        { headers: { ...getAuthHeaders(), "Content-Type": "application/json" } }
+      );
+      toast.success(`Complaint ${action === "resolve" ? "resolved" : "dismissed"}.`);
+      get().getComplaints();
+      return true;
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to update complaint."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ isLoading: false, error: errorMessage });
+      return false;
     }
   },
 }));
