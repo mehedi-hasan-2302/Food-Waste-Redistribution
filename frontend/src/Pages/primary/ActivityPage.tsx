@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { API_CONFIG, API_ENDPOINTS } from "@/config/api";
 import { useAuthStore } from "@/store/authStore";
+import { useModalStore } from "@/store/modalStore";
 
 interface ActivitySectionConfig {
   title: string;
@@ -109,9 +110,20 @@ const getMoney = (item: any) => {
   return total > 0 ? `Tk ${total}` : null;
 };
 
+const getOrderId = (item: any) => item.OrderID || item.order?.OrderID;
+
+const getClaimId = (item: any) => item.ClaimID || item.claim?.ClaimID;
+
+const getDeliveryStatus = (item: any) =>
+  item.DeliveryStatus ||
+  item.delivery?.DeliveryStatus ||
+  item.order?.delivery?.DeliveryStatus ||
+  item.claim?.delivery?.DeliveryStatus;
+
 const ActivityPage: React.FC = () => {
   const token = useAuthStore((state) => state.token);
   const userRole = useAuthStore((state) => state.user?.role);
+  const openModal = useModalStore((state) => state.openModal);
   const sections = useMemo(() => getActivitySections(userRole), [userRole]);
   const [activityData, setActivityData] = useState<ActivitySectionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -220,6 +232,24 @@ const ActivityPage: React.FC = () => {
                     {section.items.map((item) => {
                       const pickupCode = getPickupCode(item);
                       const money = getMoney(item);
+                      const status = getStatus(item);
+                      const deliveryStatus = getDeliveryStatus(item);
+                      const orderId = getOrderId(item);
+                      const claimId = getClaimId(item);
+                      const canAuthorizePickup =
+                        userRole === "DONOR_SELLER" &&
+                        status === "PENDING" &&
+                        (orderId || claimId);
+                      const canCompleteOrder =
+                        (userRole === "BUYER" ||
+                          userRole === "INDEP_DELIVERY") &&
+                        orderId &&
+                        deliveryStatus === "IN_TRANSIT";
+                      const canCompleteClaim =
+                        (userRole === "CHARITY_ORG" ||
+                          userRole === "ORG_VOLUNTEER") &&
+                        claimId &&
+                        deliveryStatus === "IN_TRANSIT";
 
                       return (
                         <article
@@ -236,7 +266,7 @@ const ActivityPage: React.FC = () => {
                               </h3>
                             </div>
                             <Badge className="w-fit bg-brand-green text-white">
-                              {getStatus(item)}
+                              {status}
                             </Badge>
                           </div>
                           <div className="mt-3 grid gap-2 text-sm text-dark-text/70 sm:grid-cols-3">
@@ -255,6 +285,50 @@ const ActivityPage: React.FC = () => {
                               </p>
                             )}
                           </div>
+                          {(canAuthorizePickup ||
+                            canCompleteOrder ||
+                            canCompleteClaim) && (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {canAuthorizePickup && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() =>
+                                    openModal("AUTHORIZE_PICKUP", {
+                                      orderId: orderId || undefined,
+                                      claimId: claimId || undefined,
+                                    })
+                                  }
+                                >
+                                  Authorize Pickup
+                                </Button>
+                              )}
+                              {canCompleteOrder && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    openModal("COMPLETE_DELIVERY", { orderId })
+                                  }
+                                >
+                                  Complete Delivery
+                                </Button>
+                              )}
+                              {canCompleteClaim && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    openModal("COMPLETE_DELIVERY", { claimId })
+                                  }
+                                >
+                                  Complete Donation
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </article>
                       );
                     })}
