@@ -10,10 +10,19 @@ interface ReportIssuePayload {
   message: string;
 }
 
+interface RateExperiencePayload {
+  orderId?: number | string;
+  claimId?: number | string;
+  regardingUserId: number;
+  ratingValue: number;
+  message?: string;
+}
+
 interface FeedbackState {
   isLoading: boolean;
   error: string | null;
   reportIssue: (payload: ReportIssuePayload) => Promise<boolean>;
+  rateExperience: (payload: RateExperiencePayload) => Promise<boolean>;
 }
 
 const getAuthHeaders = () => {
@@ -42,6 +51,29 @@ export const useFeedbackStore = create<FeedbackState>((set) => ({
     } catch (error) {
       const errorMessage = axios.isAxiosError(error)
         ? error.response?.data?.message || "Could not report this issue."
+        : "An unexpected error occurred.";
+      toast.error(errorMessage);
+      set({ isLoading: false, error: errorMessage });
+      return false;
+    }
+  },
+
+  rateExperience: async (payload) => {
+    set({ isLoading: true, error: null });
+    try {
+      await axios.post(
+        `${API_CONFIG.baseURL}${API_ENDPOINTS.feedback.createRating}`,
+        payload,
+        {
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        }
+      );
+      toast.success("Rating submitted.");
+      set({ isLoading: false });
+      return true;
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Could not submit rating."
         : "An unexpected error occurred.";
       toast.error(errorMessage);
       set({ isLoading: false, error: errorMessage });

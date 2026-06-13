@@ -137,6 +137,61 @@ const getDeliveryStatus = (item: any) =>
   item.order?.delivery?.DeliveryStatus ||
   item.claim?.delivery?.DeliveryStatus;
 
+const addRatingTarget = (
+  targets: Array<{ userId: number; label: string }>,
+  user: any,
+  label: string
+) => {
+  const userId = Number(user?.UserID);
+  if (!userId || targets.some((target) => target.userId === userId)) return;
+  targets.push({
+    userId,
+    label: `${label}: ${user?.Username || user?.VolunteerName || "User"}`,
+  });
+};
+
+const getRatingTargets = (item: any, userRole?: string) => {
+  const targets: Array<{ userId: number; label: string }> = [];
+  const order = item.order || item;
+  const claim = item.claim || item;
+
+  if (getOrderId(item)) {
+    if (userRole === "BUYER") {
+      addRatingTarget(targets, order.seller, "Seller");
+      addRatingTarget(
+        targets,
+        order.delivery?.independentDeliveryPersonnel,
+        "Rider"
+      );
+    } else if (userRole === "DONOR_SELLER") {
+      addRatingTarget(targets, order.buyer, "Buyer");
+      addRatingTarget(
+        targets,
+        order.delivery?.independentDeliveryPersonnel,
+        "Rider"
+      );
+    } else if (userRole === "INDEP_DELIVERY") {
+      addRatingTarget(targets, order.buyer, "Buyer");
+      addRatingTarget(targets, order.seller, "Seller");
+    }
+  }
+
+  if (getClaimId(item)) {
+    if (userRole === "CHARITY_ORG") {
+      addRatingTarget(targets, claim.donor, "Donor");
+      addRatingTarget(targets, claim.delivery?.organizationVolunteer?.user, "Volunteer");
+    } else if (userRole === "DONOR_SELLER") {
+      addRatingTarget(targets, claim.charityOrg, "Charity");
+      addRatingTarget(targets, claim.delivery?.organizationVolunteer?.user, "Volunteer");
+    } else if (userRole === "ORG_VOLUNTEER") {
+      addRatingTarget(targets, claim.charityOrg, "Charity");
+      addRatingTarget(targets, claim.donor, "Donor");
+    }
+  }
+
+  return targets;
+};
+
 const ActivityPage: React.FC = () => {
   const token = useAuthStore((state) => state.token);
   const userRole = useAuthStore((state) => state.user?.role);
@@ -254,7 +309,10 @@ const ActivityPage: React.FC = () => {
                       const deliveryStatus = getDeliveryStatus(item);
                       const orderId = getOrderId(item);
                       const claimId = getClaimId(item);
+                      const ratingTargets = getRatingTargets(item, userRole);
                       const canReportIssue = !!orderId || !!claimId;
+                      const canRateExperience =
+                        status === "COMPLETED" && ratingTargets.length > 0;
                       const canAuthorizePickup =
                         userRole === "DONOR_SELLER" &&
                         status === "PENDING" &&
@@ -317,6 +375,7 @@ const ActivityPage: React.FC = () => {
                           {(canAuthorizePickup ||
                             canCompleteOrder ||
                             canCompleteClaim ||
+                            canRateExperience ||
                             canReportIssue) && (
                             <div className="mt-4 flex flex-wrap gap-2">
                               {canAuthorizePickup && (
@@ -370,6 +429,22 @@ const ActivityPage: React.FC = () => {
                                   }
                                 >
                                   Report Issue
+                                </Button>
+                              )}
+                              {canRateExperience && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    openModal("RATE_EXPERIENCE", {
+                                      orderId: orderId || undefined,
+                                      claimId: claimId || undefined,
+                                      ratingTargets,
+                                    })
+                                  }
+                                >
+                                  Rate Experience
                                 </Button>
                               )}
                             </div>

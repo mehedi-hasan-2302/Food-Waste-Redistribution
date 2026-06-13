@@ -1,103 +1,116 @@
 # Food Waste Redistribution Platform
 
-Food Waste Redistribution is a full-stack web app for connecting food donors, sellers, charities, buyers, and delivery volunteers. Donors can list surplus food for donation or sale, buyers and charities can place orders or claims, and volunteers can help coordinate delivery.
+A full-stack marketplace for reducing food waste by connecting donors, sellers, charities, buyers, riders, volunteers, and admins in one operational flow. The project models a real redistribution system: surplus food can be posted, claimed or purchased, coordinated through chat, handed over with pickup codes, delivered by assigned helpers, reviewed after completion, and monitored by admins.
 
-## Features
+## Why This Project Matters
 
-- Role-based signup and login for donors/sellers, charities, buyers, independent delivery volunteers, organization volunteers, and admins
-- Email verification and password recovery
-- Role-specific profile completion
-- Food listing creation with image upload support
-- Donation claim and paid order flows
-- Pickup codes for handoff confirmation
-- Delivery records and notification records
-- Admin dashboard for users, verification requests, listings, complaints, and platform stats
+Food waste platforms are not only listing boards. A real system needs trust, timing, role-based access, logistics, and dispute handling. This project focuses on those harder product details: who is allowed to act, when food should expire, how handoff is verified, how buyers and charities coordinate with donors, and how admins keep the platform safe.
 
-## Tech Stack
+## Core Workflows
 
-- Frontend: React 19, TypeScript, Vite, React Router, Zustand, Tailwind CSS, Radix UI
-- Backend: Node.js, Express, TypeScript, TypeORM, PostgreSQL, Joi
-- Storage and services: Supabase Postgres, Cloudinary, SMTP email
-- Testing and CI: Jest, Supertest, GitHub Actions
+- Donors and sellers post surplus food as either donations or paid listings.
+- Buyers place paid orders with self-pickup or home-delivery options.
+- Charity organizations claim donation listings for redistribution.
+- Pickup codes verify handoff before food changes status.
+- Independent riders and organization volunteers support delivery flows.
+- Users can message listing owners and coordinate directly.
+- Completed activities can be rated to build trust.
+- Issues can be reported and reviewed through admin complaint handling.
+- Admins manage users, verifications, listings, complaints, order activity, and platform health.
 
-## Project Structure
+## Main Features
+
+- Role-based authentication for donor/seller, buyer, charity organization, independent delivery, organization volunteer, and admin users
+- Email verification, password recovery, and secure token invalidation
+- Role-specific profile completion and verification requirements
+- Food listings with images, expiry windows, live filtering, and dynamic discount pricing
+- Order and donation claim workflows with pickup authorization
+- Home-delivery assignment for buyer orders and donation claims
+- Realtime notifications and Socket.IO-powered chat
+- My Activity page for purchases, sales, claims, deliveries, pickup codes, reports, and ratings
+- Admin dashboard with user control, listing moderation, verification review, complaint handling, order oversight, and system health checks
+- PostgreSQL migrations, typed backend models, and focused Jest coverage
+
+## Architecture
 
 ```text
 Food-Waste-Redistribution/
-|-- backend/      # Express API, TypeORM models, migrations, tests
-|-- frontend/     # Vite React app
+|-- backend/
+|   |-- src/controllers   # Express request handlers
+|   |-- src/services      # Business logic and workflow rules
+|   |-- src/models        # TypeORM entities
+|   |-- src/routes        # REST route modules
+|   |-- src/migrations    # PostgreSQL schema history
+|   `-- tests             # Jest unit and controller tests
+|
+|-- frontend/
+|   |-- src/Pages         # Route-level React screens
+|   |-- src/components    # UI, food, admin, order, and profile components
+|   |-- src/store         # Zustand stores
+|   |-- src/config        # API endpoint config
+|   `-- src/lib           # Shared types and helpers
+|
 `-- README.md
 ```
 
-## Local Setup
+## Tech Stack
 
-Requirements:
+**Frontend:** React, TypeScript, Vite, React Router, Zustand, Tailwind CSS, Radix UI, lucide-react
 
-- Node.js 20+. Use the version in `.nvmrc`.
-- npm
-- A PostgreSQL database. Supabase Postgres works well.
-- Cloudinary credentials if you want real image uploads.
-- SMTP credentials if you want real email verification/password reset delivery.
+**Backend:** Node.js, Express, TypeScript, TypeORM, PostgreSQL, Socket.IO, Joi
 
-### Backend
+**Services:** Supabase Postgres, Cloudinary, SMTP email
+
+**Quality:** Jest, Supertest, TypeScript checks, database migrations, GitHub Actions-ready scripts
+
+## Local Development
+
+Requirements: Node.js 20+, npm, PostgreSQL, and optional Cloudinary/SMTP credentials for real uploads and emails.
+
+Backend:
 
 ```bash
 cd backend
 npm ci
 cp .env.example .env
-```
-
-Fill `backend/.env`:
-
-```env
-PORT=4000
-DB_HOST=aws-1-ap-northeast-1.pooler.supabase.com
-DB_PORT=5432
-DB_NAME=postgres
-DB_USER=postgres.<project-ref>
-DB_PASSWORD=<your-password>
-DB_SSL=true
-DB_SSL_REJECT_UNAUTHORIZED=false
-JWT_SECRET=<long-random-secret>
-FRONTEND_URL=http://localhost:5173
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-```
-
-For a fresh database, run migrations:
-
-```bash
-npm run migration:show
 npm run migration:run
-```
-
-Start the API:
-
-```bash
 npm run dev
 ```
 
-The backend defaults to `http://localhost:4000`.
-
-Useful backend commands:
-
-```bash
-npm run type-check
-npm run test
-npm run build
-npm run migration:show
-npm run migration:run
-npm run migration:revert
-```
-
-### Frontend
+Frontend:
 
 ```bash
 cd frontend
 npm ci
 cp .env.example .env
+npm run dev
 ```
 
-Fill `frontend/.env`:
+Typical local URLs:
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:4000`
+- Health check: `GET /api/health`
+
+## Environment Overview
+
+Backend `.env` needs database, JWT, frontend, CORS, SMTP, and Cloudinary values:
+
+```env
+PORT=4000
+DB_HOST=<postgres-host>
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=<postgres-user>
+DB_PASSWORD=<postgres-password>
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=false
+JWT_SECRET=<long-random-secret>
+FRONTEND_URL=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173
+```
+
+Frontend `.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:4000
@@ -105,179 +118,62 @@ VITE_APP_NAME=Food Waste Redistribution
 VITE_NODE_ENV=development
 ```
 
-Start the frontend:
+## Useful Commands
+
+Backend:
 
 ```bash
-npm run dev
-```
-
-The frontend defaults to `http://localhost:5173`.
-
-Useful frontend commands:
-
-```bash
+npm run type-check
+npm test
 npm run build
-npm run lint
-npm run preview
-```
-
-## Deployment Notes
-
-This repo is easiest to deploy as two separate projects:
-
-- Backend project root: `backend`
-- Frontend project root: `frontend`
-
-### Backend Environment
-
-Set these variables in the backend host:
-
-```env
-NODE_ENV=production
-DB_HOST=<supabase-pooler-host>
-DB_PORT=5432
-DB_NAME=postgres
-DB_USER=postgres.<project-ref>
-DB_PASSWORD=<your-database-password>
-DB_SSL=true
-DB_SSL_REJECT_UNAUTHORIZED=false
-JWT_SECRET=<long-random-secret>
-JWT_EXPIRES_IN=24h
-FRONTEND_URL=https://<your-frontend-domain>
-CORS_ORIGINS=https://<your-frontend-domain>,http://localhost:5173
-SMTP_HOST=<your-smtp-host>
-SMTP_PORT=465
-SMTP_USER=<your-smtp-user>
-SMTP_PASSWORD=<your-smtp-password>
-CLOUDINARY_CLOUD_NAME=<your-cloudinary-cloud-name>
-CLOUDINARY_API_KEY=<your-cloudinary-api-key>
-CLOUDINARY_API_SECRET=<your-cloudinary-api-secret>
-```
-
-Run migrations against the production database before using a fresh deployment:
-
-```bash
-cd backend
 npm run migration:show
 npm run migration:run
 ```
 
-After deployment, check:
+Frontend:
 
-```http
-GET /api/health
+```bash
+npm run build
+npm run dev
 ```
 
-The endpoint returns `200` when the API and database are reachable. It returns `503` with `status: "degraded"` when the API is up but the database is not reachable.
+## API Areas
 
-### Frontend Environment
+- `POST /api/auth/signup`, `POST /api/auth/login`
+- `GET /api/food-listings`, `POST /api/food-listings/upload`
+- `POST /api/orders/:id/create-order`
+- `POST /api/orders/:id/authorize-pickup`
+- `POST /api/orders/:id/complete-delivery`
+- `POST /api/donations/:id/create-claim`
+- `POST /api/donations/:id/authorize-pickup`
+- `GET /api/chat/conversations`
+- `POST /api/feedback/complaints`
+- `POST /api/feedback/ratings`
+- `GET /api/admin/dashboard/stats`
+- `GET /api/admin/orders`
+- `GET /api/admin/complaints`
 
-Set this in the frontend host:
+## Deployment Notes
 
-```env
-VITE_API_BASE_URL=https://<your-backend-domain>
-VITE_APP_NAME=Food Waste Redistribution
-VITE_NODE_ENV=production
+The frontend and backend are designed to deploy as separate projects. The REST API can run on serverless hosting, but Socket.IO chat and realtime notifications work best on a long-running Node host such as Render, Railway, Fly.io, EC2, or a VPS.
+
+Before using a new database, run migrations from the backend project:
+
+```bash
+npm run migration:run
 ```
 
-### Realtime Hosting Note
+## Testing Status
 
-Vercel serverless functions are fine for the REST API, but they are not a good fit for long-running Socket.IO connections. For production realtime notifications and live chat, deploy the backend on a long-running Node host such as Render, Railway, Fly.io, an EC2/VPS server, or switch realtime features to a managed realtime service.
+The backend has Jest coverage for auth, validation, listings, orders, donations, notifications, chat, health, feedback, and pricing logic. The main verification commands are:
 
-## API Overview
+```bash
+cd backend
+npm run type-check
+npm test
 
-### Health
-
-```http
-GET /api/health
-```
-
-### Auth
-
-```http
-POST /api/auth/signup
-POST /api/auth/login
-POST /api/auth/verify-email
-POST /api/auth/request-password-reset
-POST /api/auth/reset-password
-POST /api/auth/change-password
-```
-
-### Profile
-
-```http
-GET /api/profile/get-profile
-POST /api/profile/complete
-PUT /api/profile/update-profile
-```
-
-### Food Listings
-
-```http
-GET /api/food-listings
-GET /api/food-listings/search
-GET /api/food-listings/:id
-POST /api/food-listings/upload
-GET /api/food-listings/my/listings
-GET /api/food-listings/my/stats
-PUT /api/food-listings/:id/update
-DELETE /api/food-listings/:id
-POST /api/food-listings/:id/negotiate
-PATCH /api/food-listings/:id/status
-```
-
-### Orders
-
-```http
-POST /api/orders/:id/create-order
-POST /api/orders/:id/authorize-pickup
-POST /api/orders/:id/complete-delivery
-POST /api/orders/:id/report-failure
-GET /api/orders/:id
-GET /api/orders/my/purchases
-GET /api/orders/my/sales
-GET /api/orders/my/deliveries
-GET /api/orders/my/stats
-PUT /api/orders/:id/cancel
-```
-
-### Donations
-
-```http
-POST /api/donations/:id/create-claim
-POST /api/donations/:id/authorize-pickup
-POST /api/donations/:id/complete-delivery
-POST /api/donations/:id/report-failure
-GET /api/donations/:id
-GET /api/donations/my/claims
-GET /api/donations/my/offers
-GET /api/donations/my/deliveries
-GET /api/donations/my/stats
-PUT /api/donations/:id/cancel
-```
-
-### Notifications
-
-```http
-GET /api/notifications/get-notifications
-PATCH /api/notifications/:notificationId/read
-PATCH /api/notifications/read-all
-```
-
-### Admin
-
-```http
-GET /api/admin/dashboard/stats
-GET /api/admin/system/health
-GET /api/admin/users
-PUT /api/admin/users/:userId/suspend
-PUT /api/admin/users/:userId/reactivate
-GET /api/admin/verifications/pending
-POST /api/admin/verifications/process
-GET /api/admin/food-listings
-DELETE /api/admin/food-listings/:listingId
-GET /api/admin/complaints
-PUT /api/admin/complaints/:complaintId/resolve
+cd ../frontend
+npm run build
 ```
 
 ## Contributors

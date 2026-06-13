@@ -51,3 +51,34 @@ export async function getMyComplaints(req: Request, res: Response) {
     return sendErrorResponse(res, error.message, 500)
   }
 }
+
+export async function createRating(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return sendErrorResponse(res, 'User not authenticated', 401)
+    }
+
+    const { orderId, claimId, regardingUserId, ratingValue, message } = req.body
+    const result = await feedbackService.createRating(req.user.UserID, {
+      orderId: orderId ? parseInt(orderId) : undefined,
+      claimId: claimId ? parseInt(claimId) : undefined,
+      regardingUserId: regardingUserId ? parseInt(regardingUserId) : undefined,
+      ratingValue: Number(ratingValue),
+      message
+    })
+
+    logger.info('Rating submitted', { userId: req.user.UserID, orderId, claimId })
+    return sendSuccessResponse(res, result, 'Rating submitted successfully')
+  } catch (error: any) {
+    logger.error('Error submitting rating', { error: error.message })
+    if (
+      error instanceof ValidationError ||
+      error instanceof UnauthorizedActionError ||
+      error instanceof UserDoesNotExistError
+    ) {
+      return sendErrorResponse(res, error.message, error.statusCode)
+    }
+
+    return sendErrorResponse(res, error.message, 500)
+  }
+}
