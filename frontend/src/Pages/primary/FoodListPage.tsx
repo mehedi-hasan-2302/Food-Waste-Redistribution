@@ -241,12 +241,21 @@ const FoodListPage: React.FC = () => {
               <Button
                 key={option.value}
                 type="button"
-                variant={isSelected ? "default" : "outline"}
-                className="h-auto w-full flex-col items-start justify-start whitespace-normal px-4 py-3 text-left"
+                variant="outline"
+                aria-pressed={isSelected}
+                className={`h-auto w-full flex-col items-start justify-start whitespace-normal px-4 py-3 text-left transition-all ${
+                  isSelected
+                    ? "border-brand-green bg-brand-green text-white shadow-md ring-2 ring-brand-green/20 hover:bg-brand-green/90"
+                    : "border-dark-text/25 bg-white text-dark-text hover:border-brand-green hover:bg-brand-green/5"
+                }`}
                 onClick={() => setListingTypeFilter(option.value)}
               >
                 <span className="text-sm font-semibold">{option.label}</span>
-                <span className="text-xs font-normal opacity-80">
+                <span
+                  className={`text-xs font-normal ${
+                    isSelected ? "text-white/85" : "text-dark-text/70"
+                  }`}
+                >
                   {option.description}
                 </span>
               </Button>

@@ -54,6 +54,8 @@ export interface SearchParams {
 
 const userRepo = AppDataSource.getRepository(User)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
+const MIN_PICKUP_DURATION_MS = 60 * 60 * 1000
+const MAX_PICKUP_DURATION_MS = 6 * 60 * 60 * 1000
 
 function addDynamicPriceFields<T extends { listing: Record<string, unknown> }>(
   baseData: T,
@@ -74,6 +76,22 @@ function addDynamicPriceFields<T extends { listing: Record<string, unknown> }>(
       discountApplied: priceResult.discountApplied
     }
   };
+}
+
+function validatePickupWindowDuration(start: Date, end?: Date) {
+  if (!end) {
+    return;
+  }
+
+  const duration = end.getTime() - start.getTime();
+
+  if (duration < MIN_PICKUP_DURATION_MS) {
+    throw new ValidationError('Pickup window must be at least 1 hour long');
+  }
+
+  if (duration > MAX_PICKUP_DURATION_MS) {
+    throw new ValidationError('Pickup window cannot be longer than 6 hours');
+  }
 }
 
 // Helper function to validate and parse filter parameters
@@ -185,6 +203,7 @@ export async function createFoodListingWithImage(
     const pickupEnd = listingData.PickupWindowEnd 
       ? new Date(listingData.PickupWindowEnd)
       : new Date(pickupStart.getTime() + 4 * 60 * 60 * 1000);
+    validatePickupWindowDuration(pickupStart, pickupEnd);
 
     const foodListing = new FoodListing();
     foodListing.donor = user;
@@ -465,12 +484,16 @@ export async function updateFoodListingWithImage(
   if (updateData.Price !== undefined && !listing.IsDonation) {
     listing.Price = updateData.Price
   }
-  if (updateData.PickupWindowStart) {
-    listing.PickupWindowStart = new Date(updateData.PickupWindowStart)
-  }
-  if (updateData.PickupWindowEnd) {
-    listing.PickupWindowEnd = new Date(updateData.PickupWindowEnd)
-  }
+  const nextPickupStart = updateData.PickupWindowStart
+    ? new Date(updateData.PickupWindowStart)
+    : listing.PickupWindowStart
+  const nextPickupEnd = updateData.PickupWindowEnd
+    ? new Date(updateData.PickupWindowEnd)
+    : listing.PickupWindowEnd
+  validatePickupWindowDuration(nextPickupStart, nextPickupEnd)
+
+  if (updateData.PickupWindowStart) listing.PickupWindowStart = nextPickupStart
+  if (updateData.PickupWindowEnd) listing.PickupWindowEnd = nextPickupEnd
   if (updateData.PickupLocation) listing.PickupLocation = updateData.PickupLocation
   if (updateData.Quantity) listing.Quantity = updateData.Quantity
   if (updateData.DietaryInfo) listing.DietaryInfo = updateData.DietaryInfo

@@ -7,6 +7,7 @@ import {
   suspendUser,
   reactivateUser,
   getAllFoodListings,
+  getOrderOversight,
   removeFoodListing,
   getAllComplaints,
   resolveComplaint,
@@ -37,6 +38,9 @@ router.post('/verifications/process', processVerification)
 // Food Listing Management
 router.get('/food-listings', getAllFoodListings)
 router.delete('/food-listings/:listingId', removeFoodListing)
+
+// Order and Donation Flow Oversight
+router.get('/orders', getOrderOversight)
 
 // Complaint Management
 router.get('/complaints', getAllComplaints)

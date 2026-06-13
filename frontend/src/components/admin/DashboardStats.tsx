@@ -1,5 +1,13 @@
 import { useEffect } from "react";
-import { Users, FileCheck, FileX, PackageCheck, Loader2 } from "lucide-react";
+import {
+  ClipboardList,
+  FileCheck,
+  FileX,
+  Loader2,
+  PackageCheck,
+  Truck,
+  Users,
+} from "lucide-react";
 import { useAdminStore } from "@/store/adminStore";
 import StatCard from "@/components/admin/StatCard";
 
@@ -43,6 +51,24 @@ export const DashboardStats: React.FC = () => {
         title="Active Food Listings"
         value={dashboardStats?.activeFoodListings || 0}
         color="text-green-500"
+      />
+      <StatCard
+        icon={<ClipboardList className="h-5 w-5" />}
+        title="Pending Orders"
+        value={dashboardStats?.pendingOrders || 0}
+        color="text-blue-500"
+      />
+      <StatCard
+        icon={<PackageCheck className="h-5 w-5" />}
+        title="Pending Donation Claims"
+        value={dashboardStats?.pendingDonationClaims || 0}
+        color="text-teal-500"
+      />
+      <StatCard
+        icon={<Truck className="h-5 w-5" />}
+        title="Active Deliveries"
+        value={dashboardStats?.activeDeliveries || 0}
+        color="text-emerald-500"
       />
     </div>
   );

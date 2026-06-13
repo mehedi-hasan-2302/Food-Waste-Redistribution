@@ -18,6 +18,7 @@ const CompleteDeliveryModal: React.FC = () => {
 
   const orderId = modalProps?.orderId || modalProps?.claimId;
   const isDonation = !!modalProps?.claimId;
+  const entityLabel = isDonation ? "donation claim" : "order";
 
   const handleConfirm = async () => {
     if (!orderId) {
@@ -37,8 +38,8 @@ const CompleteDeliveryModal: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Confirm Delivery Completion</DialogTitle>
           <DialogDescription>
-            Are you sure you have successfully delivered Order #{orderId}? This
-            action cannot be undone.
+            Are you sure you have successfully delivered {entityLabel} #
+            {orderId}? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4">

@@ -1,10 +1,13 @@
 import { AppDataSource } from '../config/data-source'
-import { MoreThanOrEqual } from 'typeorm';
+import { In, MoreThanOrEqual } from 'typeorm';
 import { User, UserRole, AccountStatus } from '../models/User'
 import { CharityOrganization } from '../models/CharityOrganization'
 import { IndependentDelivery } from '../models/IndependentDelivery'
 import { FoodListing, ListingStatus } from '../models/FoodListing'
 import { FeedbackComplaint, AdminActionStatus, FeedbackType } from '../models/FeedbackComplaint'
+import { Order, OrderStatus } from '../models/Order'
+import { DonationClaim, ClaimStatus } from '../models/DonationClaim'
+import { Delivery, DeliveryStatus } from '../models/Delivery'
 import { 
   UserDoesNotExistError, 
   UnauthorizedActionError, 
@@ -23,6 +26,11 @@ export interface AdminStats {
   pendingDeliveryVerifications: number
   totalFoodListings: number
   activeFoodListings: number
+  totalOrders: number
+  pendingOrders: number
+  totalDonationClaims: number
+  pendingDonationClaims: number
+  activeDeliveries: number
   totalComplaints: number
   pendingComplaints: number
 }
@@ -47,6 +55,9 @@ const charityRepo = AppDataSource.getRepository(CharityOrganization)
 const deliveryRepo = AppDataSource.getRepository(IndependentDelivery)
 const foodListingRepo = AppDataSource.getRepository(FoodListing)
 const feedbackRepo = AppDataSource.getRepository(FeedbackComplaint)
+const orderRepo = AppDataSource.getRepository(Order)
+const donationClaimRepo = AppDataSource.getRepository(DonationClaim)
+const deliveryTaskRepo = AppDataSource.getRepository(Delivery)
 
 export async function getAdminDashboardStats(): Promise<AdminStats> {
   const [
@@ -59,6 +70,11 @@ export async function getAdminDashboardStats(): Promise<AdminStats> {
     pendingDeliveryVerifications,
     totalFoodListings,
     activeFoodListings,
+    totalOrders,
+    pendingOrders,
+    totalDonationClaims,
+    pendingDonationClaims,
+    activeDeliveries,
     totalComplaints,
     pendingComplaints
   ] = await Promise.all([
@@ -71,6 +87,13 @@ export async function getAdminDashboardStats(): Promise<AdminStats> {
     deliveryRepo.count({ where: { IsIDVerifiedByAdmin: false } }),
     foodListingRepo.count(),
     foodListingRepo.count({ where: { ListingStatus: ListingStatus.ACTIVE } }),
+    orderRepo.count(),
+    orderRepo.count({ where: { OrderStatus: OrderStatus.PENDING } }),
+    donationClaimRepo.count(),
+    donationClaimRepo.count({ where: { ClaimStatus: ClaimStatus.PENDING } }),
+    deliveryTaskRepo.count({
+      where: { DeliveryStatus: In([DeliveryStatus.SCHEDULED, DeliveryStatus.IN_TRANSIT]) }
+    }),
     feedbackRepo.count(),
     feedbackRepo.count({ where: { AdminActionStatus: AdminActionStatus.PENDING } })
   ])
@@ -86,8 +109,127 @@ export async function getAdminDashboardStats(): Promise<AdminStats> {
     pendingDeliveryVerifications,
     totalFoodListings,
     activeFoodListings,
+    totalOrders,
+    pendingOrders,
+    totalDonationClaims,
+    pendingDonationClaims,
+    activeDeliveries,
     totalComplaints,
     pendingComplaints
+  }
+}
+
+
+export async function getOrderOversight(filters: any) {
+  const limit = filters.limit || 20
+  const offset = filters.offset || 0
+
+  const [orders, donationClaims] = await Promise.all([
+    orderRepo.find({
+      relations: [
+        'buyer',
+        'seller',
+        'listing',
+        'delivery',
+        'delivery.independentDeliveryPersonnel'
+      ],
+      select: {
+        OrderID: true,
+        OrderStatus: true,
+        PaymentStatus: true,
+        PaymentMethod: true,
+        DeliveryType: true,
+        FinalPrice: true,
+        DeliveryFee: true,
+        CreatedAt: true,
+        buyer: {
+          UserID: true,
+          Username: true,
+          Email: true,
+          PhoneNumber: true
+        },
+        seller: {
+          UserID: true,
+          Username: true,
+          Email: true,
+          PhoneNumber: true
+        },
+        listing: {
+          ListingID: true,
+          Title: true,
+          IsDonation: true
+        },
+        delivery: {
+          DeliveryID: true,
+          DeliveryStatus: true,
+          DeliveryPersonnelType: true,
+          independentDeliveryPersonnel: {
+            UserID: true,
+            Username: true,
+            PhoneNumber: true
+          }
+        }
+      },
+      skip: offset,
+      take: limit,
+      order: { OrderID: 'DESC' }
+    }),
+    donationClaimRepo.find({
+      relations: [
+        'charityOrg',
+        'donor',
+        'listing',
+        'delivery',
+        'delivery.organizationVolunteer',
+        'delivery.organizationVolunteer.user'
+      ],
+      select: {
+        ClaimID: true,
+        ClaimStatus: true,
+        DeliveryType: true,
+        charityOrg: {
+          UserID: true,
+          Username: true,
+          Email: true,
+          PhoneNumber: true
+        },
+        donor: {
+          UserID: true,
+          Username: true,
+          Email: true,
+          PhoneNumber: true
+        },
+        listing: {
+          ListingID: true,
+          Title: true,
+          IsDonation: true
+        },
+        delivery: {
+          DeliveryID: true,
+          DeliveryStatus: true,
+          DeliveryPersonnelType: true,
+          organizationVolunteer: {
+            OrgVolunteerID: true,
+            VolunteerName: true,
+            VolunteerContactPhone: true,
+            user: {
+              UserID: true,
+              Username: true,
+              PhoneNumber: true
+            }
+          }
+        }
+      },
+      skip: offset,
+      take: limit,
+      order: { ClaimID: 'DESC' }
+    })
+  ])
+
+  logger.info('Fetched admin order oversight', { filters })
+  return {
+    orders,
+    donationClaims
   }
 }
 

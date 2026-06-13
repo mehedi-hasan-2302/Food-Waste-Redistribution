@@ -1,6 +1,10 @@
+export type PaymentMethod = "PAY_ON_DELIVERY" | "PAY_ON_PICKUP";
+
 export interface Order {
   orderId: number;
   orderStatus: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  paymentMethod?: PaymentMethod;
+  PaymentMethod?: PaymentMethod;
   pickupCode: string;
   estimatedTotal: number;
   deliveryFee: number;
@@ -27,6 +31,7 @@ export interface CreateOrderPayload {
   deliveryType: "HOME_DELIVERY" | "SELF_PICKUP";
   deliveryAddress: string;
   proposedPrice?: number;
+  paymentMethod?: PaymentMethod;
   orderNotes?: string;
 }
 

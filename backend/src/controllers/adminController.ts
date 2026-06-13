@@ -221,6 +221,30 @@ export async function getAllFoodListings(req: Request, res: Response) {
 }
 
 
+export async function getOrderOversight(req: Request, res: Response) {
+  try {
+    if (!req.user || req.user.Role !== 'ADMIN') {
+      logger.warn('Unauthorized order oversight access attempt')
+      return sendErrorResponse(res, 'Admin access required', 403)
+    }
+
+    const { page = 1, limit = 20 } = req.query
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string)
+
+    const result = await adminService.getOrderOversight({
+      limit: parseInt(limit as string),
+      offset
+    })
+    logger.info('Admin retrieved order oversight', { adminId: req.user.UserID })
+    return sendSuccessResponse(res, result, 'Order oversight retrieved successfully')
+
+  } catch (error: any) {
+    logger.error('Error retrieving order oversight', { error: error.message })
+    sendErrorResponse(res, error.message, 500)
+  }
+}
+
+
 export async function removeFoodListing(req: Request, res: Response) {
   try {
     if (!req.user || req.user.Role !== 'ADMIN') {
