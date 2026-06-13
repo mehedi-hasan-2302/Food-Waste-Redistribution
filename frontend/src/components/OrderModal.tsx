@@ -29,6 +29,11 @@ interface OrderModalProps {
   children: React.ReactNode;
 }
 
+type DeliveryChoice = "HOME_DELIVERY" | "SELF_PICKUP";
+type PaymentChoice = "PAY_ON_DELIVERY" | "PAY_ON_PICKUP";
+
+const DELIVERY_FEE = 50;
+
 const OrderModal: React.FC<OrderModalProps> = ({
     listingId,
     listingPrice,
@@ -41,11 +46,17 @@ const OrderModal: React.FC<OrderModalProps> = ({
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [deliveryType, setDeliveryType] = useState<
-    "HOME_DELIVERY" | "SELF_PICKUP"
-  >("HOME_DELIVERY");
+  const [deliveryType, setDeliveryType] =
+    useState<DeliveryChoice>("HOME_DELIVERY");
+  const [paymentChoice, setPaymentChoice] =
+    useState<PaymentChoice>("PAY_ON_DELIVERY");
   const [deliveryAddress, setDeliveryAddress] = useState(""); 
   const [orderNotes, setOrderNotes] = useState("");
+  const deliveryFee =
+    !isDonation && deliveryType === "HOME_DELIVERY" ? DELIVERY_FEE : 0;
+  const estimatedTotal = listingPrice + deliveryFee;
+  const paymentLabel =
+    paymentChoice === "PAY_ON_DELIVERY" ? "Pay on delivery" : "Pay at pickup";
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,12 +75,18 @@ const OrderModal: React.FC<OrderModalProps> = ({
       const newClaim = await createClaim(String(listingId), claimDetails);
       success = !!newClaim;
     } else {
+    const combinedNotes = [
+      `Payment method: ${paymentLabel}`,
+      orderNotes.trim(),
+    ]
+      .filter(Boolean)
+      .join("\n");
     const orderDetails: CreateOrderPayload = {
       deliveryType,
       deliveryAddress:
         deliveryType === "HOME_DELIVERY" ? deliveryAddress : "SELF_PICKUP",
       proposedPrice: listingPrice,
-      orderNotes,
+      orderNotes: combinedNotes,
     };
 
     const newOrder = await createOrder(String(listingId), orderDetails)
@@ -91,13 +108,13 @@ const OrderModal: React.FC<OrderModalProps> = ({
     : "Order Notes (Optional)";
   const buttonText = isDonation
     ? "Confirm Claim"
-    : `Place Order for Tk ${listingPrice}`;
+    : `Place Order for Tk ${estimatedTotal}`;
 
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-white">
+      <DialogContent className="sm:max-w-[520px] bg-white">
         <DialogHeader>
           <DialogTitle className="text-2xl">{modalTitle}</DialogTitle>
           <DialogDescription>
@@ -110,17 +127,43 @@ const OrderModal: React.FC<OrderModalProps> = ({
             <Label className="font-semibold">Delivery Option</Label>
             <RadioGroup
               value={deliveryType}
-              onValueChange={(value) => setDeliveryType(value as any)}
-              className="mt-2"
+              onValueChange={(value) => {
+                const nextDeliveryType = value as DeliveryChoice;
+                setDeliveryType(nextDeliveryType);
+                setPaymentChoice(
+                  nextDeliveryType === "SELF_PICKUP"
+                    ? "PAY_ON_PICKUP"
+                    : "PAY_ON_DELIVERY"
+                );
+              }}
+              className="mt-2 grid gap-3 sm:grid-cols-2"
             >
-              <div className="flex items-center space-x-2">
+              <Label
+                htmlFor="home_delivery"
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-dark-text/15 p-3 hover:border-brand-green"
+              >
                 <RadioGroupItem value="HOME_DELIVERY" id="home_delivery" />
-                <Label htmlFor="home_delivery">Home Delivery</Label>
-              </div>
-              <div className="flex items-center space-x-2">
+                <span>
+                  <span className="block font-semibold">Home Delivery</span>
+                  <span className="block text-sm text-dark-text/65">
+                    {isDonation
+                      ? "Coordinate delivery with your organization volunteer."
+                      : "A verified rider is assigned if available."}
+                  </span>
+                </span>
+              </Label>
+              <Label
+                htmlFor="self_pickup"
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-dark-text/15 p-3 hover:border-brand-green"
+              >
                 <RadioGroupItem value="SELF_PICKUP" id="self_pickup" />
-                <Label htmlFor="self_pickup">Self Pickup</Label>
-              </div>
+                <span>
+                  <span className="block font-semibold">Self Pickup</span>
+                  <span className="block text-sm text-dark-text/65">
+                    Use the pickup code after the seller/donor confirms.
+                  </span>
+                </span>
+              </Label>
             </RadioGroup>
           </div>
 
@@ -138,6 +181,46 @@ const OrderModal: React.FC<OrderModalProps> = ({
             </div>
           )}
 
+          {!isDonation && (
+            <div>
+              <Label className="font-semibold">Payment Method</Label>
+              <RadioGroup
+                value={paymentChoice}
+                onValueChange={(value) => setPaymentChoice(value as PaymentChoice)}
+                className="mt-2 grid gap-3 sm:grid-cols-2"
+              >
+                <Label
+                  htmlFor="pay_on_delivery"
+                  className="flex cursor-pointer items-start gap-3 rounded-md border border-dark-text/15 p-3 hover:border-brand-green"
+                >
+                  <RadioGroupItem
+                    value="PAY_ON_DELIVERY"
+                    id="pay_on_delivery"
+                    disabled={deliveryType !== "HOME_DELIVERY"}
+                  />
+                  <span>
+                    <span className="block font-semibold">Pay on delivery</span>
+                    <span className="block text-sm text-dark-text/65">
+                      Cash/offline payment to rider or seller.
+                    </span>
+                  </span>
+                </Label>
+                <Label
+                  htmlFor="pay_on_pickup"
+                  className="flex cursor-pointer items-start gap-3 rounded-md border border-dark-text/15 p-3 hover:border-brand-green"
+                >
+                  <RadioGroupItem value="PAY_ON_PICKUP" id="pay_on_pickup" />
+                  <span>
+                    <span className="block font-semibold">Pay at pickup</span>
+                    <span className="block text-sm text-dark-text/65">
+                      Online payment can be added later.
+                    </span>
+                  </span>
+                </Label>
+              </RadioGroup>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="orderNotes" className="font-semibold">
               {notesLabel}
@@ -148,6 +231,23 @@ const OrderModal: React.FC<OrderModalProps> = ({
               onChange={(e) => setOrderNotes(e.target.value)}
             />
           </div>
+
+          {!isDonation && (
+            <div className="rounded-md border border-brand-green/20 bg-brand-green/5 p-3 text-sm">
+              <div className="flex justify-between">
+                <span>Food price</span>
+                <span className="font-medium">Tk {listingPrice}</span>
+              </div>
+              <div className="mt-1 flex justify-between">
+                <span>Delivery fee</span>
+                <span className="font-medium">Tk {deliveryFee}</span>
+              </div>
+              <div className="mt-2 flex justify-between border-t border-brand-green/20 pt-2 text-base font-semibold">
+                <span>Estimated total</span>
+                <span>Tk {estimatedTotal}</span>
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <DialogClose asChild>

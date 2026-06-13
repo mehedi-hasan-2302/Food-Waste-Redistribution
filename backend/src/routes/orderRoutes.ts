@@ -19,7 +19,7 @@ const router = Router()
 router.use(verifyToken)
 
 
-router.post('/:id/create-order', requireRoles(["DONOR_SELLER", "INDEP_DELIVERY", "ORG_VOLUNTEER", "BUYER", "CHARITY_ORG"]), createOrder)
+router.post('/:id/create-order', requireRoles(["BUYER"]), createOrder)
 
 router.post('/:id/authorize-pickup', requireRoles(["DONOR_SELLER"]),  authorizePickup)
 
